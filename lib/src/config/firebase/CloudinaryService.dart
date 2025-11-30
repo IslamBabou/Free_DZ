@@ -92,18 +92,7 @@ class CloudinaryService {
     }
   }
 
-  /// Delete image by public ID
-  Future<void> deleteImage(String publicId) async {
-    try {
-      await _cloudinary.deleteFile(
-        publicId: publicId,
-        resourceType: CloudinaryResourceType.Image,
-        invalidate: true,
-      );
-    } catch (e) {
-      throw Exception('Erreur suppression image: $e');
-    }
-  }
+
 
   /// Get optimized image URL
   String getOptimizedUrl(
