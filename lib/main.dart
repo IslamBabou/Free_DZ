@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
 import 'screens/login_page.dart';
 import 'screens/register_page.dart';
+import 'screens/client/client_profile.dart';
 
 void main() {
   runApp(const FreeDzApp());
@@ -75,8 +76,8 @@ class FreeDzApp extends StatelessWidget {
         '/': (context) => const LoginPage(),
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
-        '/client_home': (context) => const ClientHomePage(),
-        // '/home': (context) => const HomePage(),
+        '/client_home': (context) => const ClientMainScreen(),
+        '/ClientProfile': (context) => const ClientProfilePage(),
       },
     );
   }

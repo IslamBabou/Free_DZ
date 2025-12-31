@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:free_dz/models/category_item.dart';
-import 'package:free_dz/models/freelancer_card.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-
-// ==========================================
-// MODELS
-// ==========================================
+import 'package:free_dz/models/client_home_page.dart';
+import "client_profile.dart";
+import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 
 // ==========================================
 // CLIENT HOME PAGE
@@ -73,6 +68,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
     });
 
     try {
+      // TODO: Uncomment this when API is ready
+      /*
       // Fetch freelancers from your API
       final response = await http.get(
         Uri.parse(_freelancersEndpoint),
@@ -101,11 +98,67 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 : [],
           );
         }).toList();
-
-        setState(() => _isLoading = false);
       } else {
         throw Exception('Failed to load freelancers: ${response.statusCode}');
       }
+      */
+
+      // TEMPORARY: Mock data for design preview
+      await Future.delayed(const Duration(seconds: 1));
+      _featuredFreelancers = [
+        FreelancerCard(
+          id: '1',
+          name: 'Sarah Ahmed',
+          title: 'UI/UX Designer',
+          imageUrl: 'https://i.pravatar.cc/150?img=1',
+          rating: 4.9,
+          reviewCount: 127,
+          hourlyRate: '2500 DA',
+          skills: ['Figma', 'Adobe XD', 'Sketch'],
+        ),
+        FreelancerCard(
+          id: '2',
+          name: 'Karim Benali',
+          title: 'Flutter Developer',
+          imageUrl: 'https://i.pravatar.cc/150?img=2',
+          rating: 4.8,
+          reviewCount: 89,
+          hourlyRate: '3000 DA',
+          skills: ['Flutter', 'Dart', 'Firebase'],
+        ),
+        FreelancerCard(
+          id: '3',
+          name: 'Amina Boudiaf',
+          title: 'Content Writer',
+          imageUrl: 'https://i.pravatar.cc/150?img=3',
+          rating: 5.0,
+          reviewCount: 156,
+          hourlyRate: '1800 DA',
+          skills: ['SEO', 'Copywriting', 'Blog'],
+        ),
+        FreelancerCard(
+          id: '4',
+          name: 'Yacine Mansouri',
+          title: 'Full Stack Developer',
+          imageUrl: 'https://i.pravatar.cc/150?img=4',
+          rating: 4.7,
+          reviewCount: 92,
+          hourlyRate: '3500 DA',
+          skills: ['React', 'Node.js', 'MongoDB'],
+        ),
+        FreelancerCard(
+          id: '5',
+          name: 'Lina Boukhari',
+          title: 'Graphic Designer',
+          imageUrl: 'https://i.pravatar.cc/150?img=5',
+          rating: 4.9,
+          reviewCount: 134,
+          hourlyRate: '2200 DA',
+          skills: ['Photoshop', 'Illustrator', 'InDesign'],
+        ),
+      ];
+
+      setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading data: $e');
       setState(() {
@@ -175,7 +228,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5), 
+                  color: Colors.black.withValues(alpha:0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -338,7 +391,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.5),
+                color: category.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -447,7 +500,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
+                      color: Colors.black.withValues(alpha:0.6),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -525,7 +578,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: Colors.blue.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -559,11 +612,20 @@ class ClientMainScreen extends StatefulWidget {
 }
 
 class _ClientMainScreenState extends State<ClientMainScreen> {
+  final _pageController = PageController(initialPage: 0);
+  final _controller = NotchBottomBarController(index: 0);
+
   int _currentIndex = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   final List<Widget> _pages = [
     const ClientHomePage(),
-    const SearchFreelancersPage(),
+    const ChatPage(),
     const SavedFreelancersPage(),
     const ClientProfilePage(),
   ];
@@ -571,53 +633,84 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
         children: _pages,
       ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF1E1E1E)
-                : Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
+      extendBody: true,
+      bottomNavigationBar: AnimatedNotchBottomBar(
+        notchBottomBarController: _controller,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E1E1E)
+            : Colors.white,
+        showLabel: true,
+        textOverflow: TextOverflow.visible,
+        maxLine: 1,
+        shadowElevation: 5,
+        kBottomRadius: 28.0,
+        notchColor: Theme.of(context).brightness == Brightness.dark
+            ? Colors.blue.shade700
+            : Colors.blue,
+        removeMargins: false,
+        bottomBarWidth: 500,
+        showShadow: true,
+        durationInMilliSeconds: 300,
+        itemLabelStyle: const TextStyle(fontSize: 10),
+        elevation: 1,
+        bottomBarItems: const [
+          BottomBarItem(
+            inActiveItem: Icon(
+              Icons.home_outlined,
+              color: Colors.grey,
+            ),
+            activeItem: Icon(
+              Icons.home,
+              color: Colors.white,
+            ),
+            itemLabel: 'Home',
           ),
-          child: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: (index) {
-              setState(() => _currentIndex = index);
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.search_outlined),
-                selectedIcon: Icon(Icons.search),
-                label: 'Search',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.favorite_border),
-                selectedIcon: Icon(Icons.favorite),
-                label: 'Saved',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
-            ],
+          BottomBarItem(
+            inActiveItem: Icon(
+              Icons.chat_outlined,
+              color: Colors.grey,
+            ),
+            activeItem: Icon(
+              Icons.chat_outlined,
+              color: Colors.white,
+            ),
+            itemLabel: 'Chat',
           ),
-        ),
+          BottomBarItem(
+            inActiveItem: Icon(
+              Icons.favorite_border,
+              color: Colors.grey,
+            ),
+            activeItem: Icon(
+              Icons.favorite,
+              color: Colors.white,
+            ),
+            itemLabel: 'Saved',
+          ),
+          BottomBarItem(
+            inActiveItem: Icon(
+              Icons.person_outline,
+              color: Colors.grey,
+            ),
+            activeItem: Icon(
+              Icons.person,
+              color: Colors.white,
+            ),
+            itemLabel: 'Profile',
+          ),
+        ],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          _pageController.jumpToPage(index);
+        },
+        kIconSize: 24.0,
       ),
     );
   }
@@ -627,14 +720,14 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
 // PLACEHOLDER PAGES
 // ==========================================
 
-class SearchFreelancersPage extends StatelessWidget {
-  const SearchFreelancersPage({super.key});
+class ChatPage extends StatelessWidget {
+  const ChatPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Search Freelancers')),
-      body: const Center(child: Text('Search Page - Coming Soon')),
+      appBar: AppBar(title: const Text('Chat')),
+      body: const Center(child: Text('Chat Page - Coming Soon')),
     );
   }
 }
@@ -651,14 +744,3 @@ class SavedFreelancersPage extends StatelessWidget {
   }
 }
 
-class ClientProfilePage extends StatelessWidget {
-  const ClientProfilePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: const Center(child: Text('Profile Page - Coming Soon')),
-    );
-  }
-}
