@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -14,22 +16,73 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _phoneController = TextEditingController();
 
-  String _role = 'Client';
+  String _role = 'client';
   bool _isLoading = false;
+
+  // Replace with your actual API URL
+  final String apiUrl = 'http://localhost/api';
 
   void _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 2)); // simulate API call
+    try {
+      final response = await http.post(
+        Uri.parse('$apiUrl/signup'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'name': _nameController.text.trim(),
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+          'phone_number': _phoneController.text.trim(),
+          'role': _role,
+        }),
+      );
 
-    debugPrint('Name: ${_nameController.text}');
-    debugPrint('Email: ${_emailController.text}');
-    debugPrint('Role: $_role');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        debugPrint('Registration successful: $data');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Registration successful!')),
+          );
+          // Navigate to login or home
+          // Navigator.pushReplacementNamed(context, '/login');
+        }
+      } else {
+        final error = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error['message'] ?? 'Registration failed')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
-    setState(() => _isLoading = false);
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _phoneController.dispose();
+    super.dispose();
   }
 
   @override
@@ -37,11 +90,18 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
+
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
+                Image.asset(
+                'assets/images/logo.png',
+                height: 180,
+                fit: BoxFit.contain,
+              ),
+              const SizedBox(height: 16),
                 const Text(
                   'Free_dz',
                   style: TextStyle(
@@ -61,6 +121,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   decoration: const InputDecoration(
                     labelText: 'Full Name',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (value) =>
                       value == null || value.isEmpty ? 'Name is required' : null,
@@ -73,6 +134,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   decoration: const InputDecoration(
                     labelText: 'Email',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -87,11 +149,27 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 16),
 
                 TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                  validator: (value) =>
+                      value == null || value.isEmpty 
+                          ? 'Phone number is required' 
+                          : null,
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Password',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
                   ),
                   validator: (value) =>
                       value == null || value.length < 6
@@ -106,6 +184,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   decoration: const InputDecoration(
                     labelText: 'Confirm Password',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outline),
                   ),
                   validator: (value) {
                     if (value != _passwordController.text) {
@@ -117,18 +196,19 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
-                  value: _role,
+                  initialValue: _role,
                   decoration: const InputDecoration(
                     labelText: 'Role',
                     border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.work_outline),
                   ),
                   items: const [
                     DropdownMenuItem(
-                      value: 'Client',
+                      value: 'client',
                       child: Text('Client'),
                     ),
                     DropdownMenuItem(
-                      value: 'Freelancer',
+                      value: 'freelancer',
                       child: Text('Freelancer'),
                     ),
                   ],
@@ -142,6 +222,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE2B025),
+                    foregroundColor: Colors.black, // good contrast
+                  ),
                     onPressed: _isLoading ? null : _register,
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
@@ -151,7 +235,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 16),
 
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    
+                    Navigator.pop(context);
+                  },
                   child: const Text('Already have an account? Login'),
                 ),
               ],
