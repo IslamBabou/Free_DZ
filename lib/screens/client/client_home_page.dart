@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_home_page.dart';
 import "client_profile.dart";
+import "chat_client.dart";
 import "saved_screen.dart";
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 
@@ -626,7 +627,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
 
   final List<Widget> _pages = [
     const ClientHomePage(),
-    const ChatPage(),
+    const ClientChatListPage(),
     const SavedFreelancersPage(),
     const ClientProfilePage(),
   ];
@@ -717,21 +718,6 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
   }
 }
 
-// ==========================================
-// PLACEHOLDER PAGES
-// ==========================================
-
-class ChatPage extends StatelessWidget {
-  const ChatPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chat')),
-      body: const Center(child: Text('Chat Page - Coming Soon')),
-    );
-  }
-}
 
 
 
