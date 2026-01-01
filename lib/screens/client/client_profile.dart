@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import 'package:free_dz/models/client_profile.dart';
+import 'package:http/http.dart' as http;
 
 
 // ==========================================
@@ -33,10 +36,10 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
   final _formKey = GlobalKey<FormState>();
   
   // Preferences
-  String _selectedLanguage = 'English';
+  final String _selectedLanguage = 'English';
   bool _pushNotifications = true;
   bool _emailNotifications = true;
-  ThemeMode _themeMode = ThemeMode.system;
+  final ThemeMode _themeMode = ThemeMode.system;
 
   @override
   void initState() {
@@ -59,8 +62,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     });
 
     try {
-      // TODO: Uncomment when API is ready
-      /*
+      
       final response = await http.get(
         Uri.parse('$_apiBaseUrl/client/profile'),
         headers: {
@@ -88,7 +90,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       } else {
         throw Exception('Failed to load profile');
       }
-      */
+      
 
       // TEMPORARY: Mock data
       await Future.delayed(const Duration(seconds: 1));
@@ -129,8 +131,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      // TODO: Uncomment when API is ready
-      /*
+      
       final response = await http.put(
         Uri.parse('$_apiBaseUrl/client/profile'),
         headers: {
@@ -150,7 +151,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       } else {
         throw Exception('Failed to update profile');
       }
-      */
+      
 
       // TEMPORARY: Mock update
       await Future.delayed(const Duration(seconds: 1));
@@ -190,8 +191,8 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
   }
 
   void _redirectToLogin() {
-    // TODO: Implement navigation to login
     debugPrint('Redirecting to login...');
+    Navigator.pushNamed(context,'/login');
   }
 
   void _redirectToRoleDashboard() {

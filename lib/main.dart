@@ -3,6 +3,7 @@ import 'package:free_dz/screens/client/client_home_page.dart';
 import 'screens/login_page.dart';
 import 'screens/register_page.dart';
 import 'screens/client/client_profile.dart';
+import 'screens/client/freelancer_profile.dart';
 
 void main() {
   runApp(const FreeDzApp());
@@ -73,12 +74,23 @@ class FreeDzApp extends StatelessWidget {
       initialRoute: '/client_home',
       // Define routes
       routes: {
-        '/': (context) => const LoginPage(),
-        '/login': (context) => const LoginPage(),
-        '/register': (context) => const RegisterPage(),
-        '/client_home': (context) => const ClientMainScreen(),
-        '/ClientProfile': (context) => const ClientProfilePage(),
-      },
-    );
+    '/': (context) => const LoginPage(),
+    '/login': (context) => const LoginPage(),
+    '/register': (context) => const RegisterPage(),
+    '/client_home': (context) => const ClientMainScreen(),
+    '/client_profile': (context) => const ClientProfilePage(),
+  },
+    onGenerateRoute: (settings) {
+      if (settings.name == '/freelancer_profile') {
+        final freelancerId = settings.arguments as String;
+
+        return MaterialPageRoute(
+          builder: (_) => FreelancerProfileScreen(
+            freelancerId: freelancerId,
+          ),
+        );
+      }
+      return null;
+    },);
   }
 }

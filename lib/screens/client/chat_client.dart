@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/chat_models.dart';
+import 'package:http/http.dart' as http;
 import 'message.dart';
 
 
@@ -16,7 +19,7 @@ class ClientChatListPage extends StatefulWidget {
 
 class _ClientChatListPageState extends State<ClientChatListPage> {
   // API Configuration
-  static const String _apiBaseUrl = 'https://your-api.com/api';
+  static const String _apiBaseUrl = 'https://localhost/api';
   
   // State
   bool _isLoading = true;
@@ -44,8 +47,7 @@ class _ClientChatListPageState extends State<ClientChatListPage> {
     });
 
     try {
-      // TODO: Uncomment when API is ready
-      /*
+      
       final response = await http.get(
         Uri.parse('$_apiBaseUrl/client/conversations'),
         headers: {
@@ -67,7 +69,7 @@ class _ClientChatListPageState extends State<ClientChatListPage> {
       } else {
         throw Exception('Failed to load conversations');
       }
-      */
+      
 
       // TEMPORARY: Mock data
       await Future.delayed(const Duration(seconds: 1));
@@ -165,8 +167,8 @@ class _ClientChatListPageState extends State<ClientChatListPage> {
   }
 
   void _redirectToLogin() {
-    // TODO: Implement navigation to login
     debugPrint('Redirecting to login...');
+    Navigator.pushNamed(context,'/login');
   }
 
   void _redirectToRoleDashboard() {

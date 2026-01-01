@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_home_page.dart';
+import 'package:http/http.dart' as http;
 import "client_profile.dart";
 import "chat_client.dart";
 import "saved_screen.dart";
@@ -54,7 +57,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   ];
 
   // API endpoint - replace with your actual backend URL
-  static const String _apiBaseUrl = 'https://your-api.com/api';
+  static const String _apiBaseUrl = 'https://localhost/api';
   static const String _freelancersEndpoint = '$_apiBaseUrl/freelancers';
 
   @override
@@ -70,8 +73,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     });
 
     try {
-      // TODO: Uncomment this when API is ready
-      /*
+      
       // Fetch freelancers from your API
       final response = await http.get(
         Uri.parse(_freelancersEndpoint),
@@ -103,63 +105,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
       } else {
         throw Exception('Failed to load freelancers: ${response.statusCode}');
       }
-      */
-
-      // TEMPORARY: Mock data for design preview
-      await Future.delayed(const Duration(seconds: 1));
-      _featuredFreelancers = [
-        FreelancerCard(
-          id: '1',
-          name: 'Sarah Ahmed',
-          title: 'UI/UX Designer',
-          imageUrl: 'https://i.pravatar.cc/150?img=1',
-          rating: 4.9,
-          reviewCount: 127,
-          hourlyRate: '2500 DA',
-          skills: ['Figma', 'Adobe XD', 'Sketch'],
-        ),
-        FreelancerCard(
-          id: '2',
-          name: 'Karim Benali',
-          title: 'Flutter Developer',
-          imageUrl: 'https://i.pravatar.cc/150?img=2',
-          rating: 4.8,
-          reviewCount: 89,
-          hourlyRate: '3000 DA',
-          skills: ['Flutter', 'Dart', 'Firebase'],
-        ),
-        FreelancerCard(
-          id: '3',
-          name: 'Amina Boudiaf',
-          title: 'Content Writer',
-          imageUrl: 'https://i.pravatar.cc/150?img=3',
-          rating: 5.0,
-          reviewCount: 156,
-          hourlyRate: '1800 DA',
-          skills: ['SEO', 'Copywriting', 'Blog'],
-        ),
-        FreelancerCard(
-          id: '4',
-          name: 'Yacine Mansouri',
-          title: 'Full Stack Developer',
-          imageUrl: 'https://i.pravatar.cc/150?img=4',
-          rating: 4.7,
-          reviewCount: 92,
-          hourlyRate: '3500 DA',
-          skills: ['React', 'Node.js', 'MongoDB'],
-        ),
-        FreelancerCard(
-          id: '5',
-          name: 'Lina Boukhari',
-          title: 'Graphic Designer',
-          imageUrl: 'https://i.pravatar.cc/150?img=5',
-          rating: 4.9,
-          reviewCount: 134,
-          hourlyRate: '2200 DA',
-          skills: ['Photoshop', 'Illustrator', 'InDesign'],
-        ),
-      ];
-
+      
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading data: $e');
@@ -459,9 +405,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget _buildFreelancerCard(FreelancerCard freelancer, bool isDark) {
     return GestureDetector(
       onTap: () {
-        debugPrint('View freelancer: ${freelancer.name}');
-        // Navigate to FreelancerProfile (read-only)
-      },
+                  debugPrint('View freelancer: ${freelancer.name}');
+                  Navigator.pushNamed(
+                    context,
+                    '/freelancer_profile',
+                    arguments: freelancer.id,  
+                  );
+                },
       child: Container(
         width: 200,
         margin: const EdgeInsets.only(right: 16),
@@ -617,7 +567,6 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
   final _pageController = PageController(initialPage: 0);
   final _controller = NotchBottomBarController(index: 0);
 
-  int _currentIndex = 0;
 
   @override
   void dispose() {
@@ -708,8 +657,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
         ],
         onTap: (index) {
           setState(() {
-            _currentIndex = index;
-          });
+            });
           _pageController.jumpToPage(index);
         },
         kIconSize: 24.0,
