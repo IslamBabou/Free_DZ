@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/saved_services.dart';
+import 'package:http/http.dart' as http;
 
 
 
@@ -51,8 +54,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     });
 
     try {
-      // TODO: Uncomment when API is ready
-      /*
+      
       final response = await http.get(
         Uri.parse('$_apiBaseUrl/client/saved-services'),
         headers: {
@@ -73,7 +75,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
       } else {
         throw Exception('Failed to load saved services');
       }
-      */
+      
 
       // TEMPORARY: Mock data
       await Future.delayed(const Duration(seconds: 1));
@@ -232,8 +234,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
         );
       }
 
-      // TODO: Uncomment when API is ready
-      /*
+      
       final response = await http.delete(
         Uri.parse('$_apiBaseUrl/client/saved-services/${service.id}'),
         headers: {
@@ -245,7 +246,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
       if (response.statusCode != 200) {
         throw Exception('Failed to remove service');
       }
-      */
+      
 
       // TEMPORARY: Mock removal
       await Future.delayed(const Duration(milliseconds: 500));
@@ -278,8 +279,8 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
   }
 
   void _redirectToLogin() {
-    // TODO: Implement navigation to login
     debugPrint('Redirecting to login...');
+    Navigator.pushNamed(context,'/login');
   }
 
   void _redirectToRoleDashboard() {

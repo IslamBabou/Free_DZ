@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:free_dz/models/chat_models.dart';
 import 'dart:async';
+
+import 'package:http/http.dart' as http;
 
 
 // ==========================================
@@ -24,7 +28,7 @@ class ClientChatPage extends StatefulWidget {
 
 class _ClientChatPageState extends State<ClientChatPage> {
   // API Configuration
-  static const String _apiBaseUrl = 'https://your-api.com/api';
+  static const String _apiBaseUrl = 'https://localhost/api';
   
   // State
   bool _isLoading = true;
@@ -64,7 +68,6 @@ class _ClientChatPageState extends State<ClientChatPage> {
 
   void _startMessagePolling() {
     // Poll for new messages every 3 seconds
-    // TODO: Replace with WebSocket for production
     _messagePollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted && !_isLoading) {
         _loadMessages(silent: true);
@@ -81,8 +84,7 @@ class _ClientChatPageState extends State<ClientChatPage> {
     }
 
     try {
-      // TODO: Uncomment when API is ready
-      /*
+      
       final response = await http.get(
         Uri.parse('$_apiBaseUrl/client/conversations/${widget.conversationId}/messages'),
         headers: {
@@ -114,7 +116,7 @@ class _ClientChatPageState extends State<ClientChatPage> {
       } else {
         throw Exception('Failed to load messages');
       }
-      */
+      
 
       // TEMPORARY: Mock data
       await Future.delayed(Duration(milliseconds: silent ? 100 : 1000));
@@ -227,8 +229,7 @@ class _ClientChatPageState extends State<ClientChatPage> {
     _scrollToBottom();
 
     try {
-      // TODO: Uncomment when API is ready
-      /*
+      
       final response = await http.post(
         Uri.parse('$_apiBaseUrl/client/conversations/${widget.conversationId}/messages'),
         headers: {
@@ -252,7 +253,7 @@ class _ClientChatPageState extends State<ClientChatPage> {
       } else {
         throw Exception('Failed to send message');
       }
-      */
+      
 
       // TEMPORARY: Mock send
       await Future.delayed(const Duration(seconds: 1));
@@ -319,8 +320,8 @@ class _ClientChatPageState extends State<ClientChatPage> {
   }
 
   void _redirectToLogin() {
-    // TODO: Implement navigation to login
     debugPrint('Redirecting to login...');
+    Navigator.pushNamed(context,'/login');
   }
 
   Future<void> _showActionMenu() async {
@@ -639,7 +640,7 @@ class _ClientChatPageState extends State<ClientChatPage> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),
@@ -727,7 +728,7 @@ class _ClientChatPageState extends State<ClientChatPage> {
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
