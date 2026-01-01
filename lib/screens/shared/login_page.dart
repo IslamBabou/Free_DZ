@@ -1,63 +1,126 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/screens/client/client_home_page.dart';
+import 'package:free_dz/screens/freelancers/free_home.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-
-  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _phoneController = TextEditingController();
-
-  String _role = 'client';
   bool _isLoading = false;
 
   // Replace with your actual API URL
   final String apiUrl = 'http://localhost/api';
 
-  void _register() async {
+  void _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
       final response = await http.post(
-        Uri.parse('$apiUrl/signup'),
+        Uri.parse('$apiUrl/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'password': _passwordController.text,
-          'phone_number': _phoneController.text.trim(),
-          'role': _role,
         }),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        debugPrint('Registration successful: $data');
+        debugPrint('Login successful: $data');
+        
+        // Store token
+        final token = data['token'] ?? data['accessToken'];
+        if (token != null) {
+          // TODO: Save token to secure storage
+          // await secureStorage.write(key: 'auth_token', value: token);
+          debugPrint('Token saved: $token');
+        }
+
+        // Extract user role and data
+        final userRole = data['user']?['role'] ?? data['role'];
+        /* final userId = data['user']?['id'] ?? data['id']; */
+        final isProfileComplete = data['user']?['isProfileComplete'] ?? data['isProfileComplete'] ?? true;
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registration successful!')),
+            const SnackBar(
+              content: Text('Login successful! Welcome back'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
-          // Navigate to login or home
-          // Navigator.pushReplacementNamed(context, '/login');
+
+          // Small delay for better UX
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          if (!mounted) return;
+
+          // Role-based navigation
+          if (userRole == 'FREELANCER' || userRole == 'freelancer') {
+            // Check if profile is complete
+            if (isProfileComplete) {
+              // Profile complete → Freelancer Home
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FreelancerHomePage(
+                    showCompletionBanner: false,
+                  ),
+                ),
+              );
+            } else {
+              // Profile incomplete → Show banner
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FreelancerHomePage(
+                    showCompletionBanner: true,
+                  ),
+                ),
+              );
+            }
+          } else if (userRole == 'CLIENT' || userRole == 'client') {
+            // Client → Client Home
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ClientHomePage(),
+              ),
+            );
+          } /* else if (userRole == 'ADMIN' || userRole == 'admin') {
+            // Admin → Admin Dashboard
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AdminDashboardPage(),
+              ),
+            );
+          } */ else {
+            // Unknown role → Default login
+            debugPrint('Warning: Unknown role "$userRole"');
+            Navigator.pushReplacementNamed(context, '/login');
+          }
         }
       } else {
         final error = jsonDecode(response.body);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(error['message'] ?? 'Registration failed')),
+            SnackBar(
+              content: Text(error['message'] ?? 'Login failed'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
       }
@@ -77,11 +140,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    _phoneController.dispose();
     super.dispose();
   }
 
@@ -90,7 +150,6 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
@@ -111,23 +170,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Create your account',
+                  'Freelancers meet clients',
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
-
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Name is required' : null,
-                ),
-                const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -147,22 +193,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                  validator: (value) =>
-                      value == null || value.isEmpty 
-                          ? 'Phone number is required' 
-                          : null,
-                ),
-                const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
@@ -171,53 +201,14 @@ class _RegisterPageState extends State<RegisterPage> {
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.lock_outline),
                   ),
-                  validator: (value) =>
-                      value == null || value.length < 6
-                          ? 'Minimum 6 characters'
-                          : null,
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
                   validator: (value) {
-                    if (value != _passwordController.text) {
-                      return 'Passwords do not match';
+                    if (value == null || value.length < 6) {
+                      return 'Password must be at least 6 characters';
                     }
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
-
-                DropdownButtonFormField<String>(
-                  initialValue: _role,
-                  decoration: const InputDecoration(
-                    labelText: 'Role',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.work_outline),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'client',
-                      child: Text('Client'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'freelancer',
-                      child: Text('Freelancer'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    setState(() => _role = value!);
-                  },
-                ),
                 const SizedBox(height: 24),
-
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -226,20 +217,18 @@ class _RegisterPageState extends State<RegisterPage> {
                     backgroundColor: const Color(0xFFE2B025),
                     foregroundColor: Colors.black, // good contrast
                   ),
-                    onPressed: _isLoading ? null : _register,
+                    onPressed: _isLoading ? null : _login,
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Create Account'),
+                        : const Text('Login'),
                   ),
                 ),
                 const SizedBox(height: 16),
-
                 TextButton(
                   onPressed: () {
-                    
-                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/register');
                   },
-                  child: const Text('Already have an account? Login'),
+                  child: const Text('Create an account'),
                 ),
               ],
             ),
