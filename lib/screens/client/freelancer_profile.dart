@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:free_dz/services/api_client.dart';
+import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 import 'dart:convert';
 import 'package:free_dz/models/freelancer_profile.dart';
@@ -56,7 +56,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
     });
 
     try {
-      final response = await ApiClient.get('/freelancers/${widget.freelancerId}');
+      final response = await ApiHelper.get('/freelancers/${widget.freelancerId}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -102,7 +102,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
     setState(() => _isSaving = true);
 
     try {
-      final response = await ApiClient.post(
+      final response = await ApiHelper.post(
         '/freelancers/${widget.freelancerId}/save',
         {'save': !_isSaved},
       );

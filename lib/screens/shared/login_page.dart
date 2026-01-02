@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
 import 'package:free_dz/screens/freelancers/free_home.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
+import 'package:free_dz/services/api_helper.dart';
+import 'package:free_dz/services/auth_service.dart';
 import 'dart:convert';
+
+// ==========================================
+// LOGIN PAGE
+// ==========================================
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,22 +22,18 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  // Replace with your actual API URL
-  final String apiUrl = 'http://localhost/api';
-
-  void _login() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        Uri.parse('$apiUrl/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+      final response = await ApiHelper.post(
+        '/login',
+        {
           'email': _emailController.text.trim(),
           'password': _passwordController.text,
-        }),
+        },
       );
 
       if (response.statusCode == 200) {
@@ -43,96 +43,77 @@ class _LoginPageState extends State<LoginPage> {
         // Store token
         final token = data['token'] ?? data['accessToken'];
         if (token != null) {
-          final storage = const FlutterSecureStorage();
-          await storage.write(key: 'auth_token', value: token);
-
+          await AuthService.saveToken(token);
           debugPrint('Token saved: $token');
         }
 
         // Extract user role and data
         final userRole = data['user']?['role'] ?? data['role'];
-        /* final userId = data['user']?['id'] ?? data['id']; */
-        final isProfileComplete = data['user']?['isProfileComplete'] ?? data['isProfileComplete'] ?? true;
+        final isProfileComplete = data['user']?['is_profile_complete'] ?? 
+                                  data['user']?['isProfileComplete'] ?? 
+                                  data['is_profile_complete'] ?? 
+                                  data['isProfileComplete'] ?? 
+                                  true;
         
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Login successful! Welcome back'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login successful! Welcome back'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        // Small delay for better UX
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (!mounted) return;
+
+        // Role-based navigation
+        if (userRole == 'FREELANCER' || userRole == 'freelancer') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FreelancerHomePage(
+                showCompletionBanner: !isProfileComplete,
+              ),
             ),
           );
-
-          // Small delay for better UX
-          await Future.delayed(const Duration(milliseconds: 500));
-          
-          if (!mounted) return;
-
-          // Role-based navigation
-          if (userRole == 'FREELANCER' || userRole == 'freelancer') {
-            // Check if profile is complete
-            if (isProfileComplete) {
-              // Profile complete → Freelancer Home
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const FreelancerHomePage(
-                    showCompletionBanner: false,
-                  ),
-                ),
-              );
-            } else {
-              // Profile incomplete → Show banner
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const FreelancerHomePage(
-                    showCompletionBanner: true,
-                  ),
-                ),
-              );
-            }
-          } else if (userRole == 'CLIENT' || userRole == 'client') {
-            // Client → Client Home
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ClientHomePage(),
-              ),
-            );
-          } /* else if (userRole == 'ADMIN' || userRole == 'admin') {
-            // Admin → Admin Dashboard
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AdminDashboardPage(),
-              ),
-            );
-          } */ else {
-            // Unknown role → Default login
-            debugPrint('Warning: Unknown role "$userRole"');
-            Navigator.pushReplacementNamed(context, '/login');
-          }
+        } else if (userRole == 'CLIENT' || userRole == 'client') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ClientMainScreen(),
+            ),
+          );
+        } else {
+          debugPrint('Warning: Unknown role "$userRole"');
+          Navigator.pushReplacementNamed(context, '/login');
         }
       } else {
         final error = jsonDecode(response.body);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error['message'] ?? 'Login failed'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error['message'] ?? 'Login failed'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -158,11 +139,11 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               children: [
                 Image.asset(
-                'assets/images/logo.png',
-                height: 180,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 16),
+                  'assets/images/logo.png',
+                  height: 180,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 16),
                 const Text(
                   'Free_dz',
                   style: TextStyle(
@@ -216,12 +197,12 @@ class _LoginPageState extends State<LoginPage> {
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE2B025),
-                    foregroundColor: Colors.black, // good contrast
-                  ),
+                      backgroundColor: const Color(0xFFE2B025),
+                      foregroundColor: Colors.black,
+                    ),
                     onPressed: _isLoading ? null : _login,
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const CircularProgressIndicator(color: Colors.black)
                         : const Text('Login'),
                   ),
                 ),
@@ -240,3 +221,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/saved_services.dart';
-import 'package:free_dz/services/api_client.dart';
+import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 
 // ==========================================
@@ -48,7 +48,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     });
 
     try {
-      final response = await ApiClient.get('/client/saved-services');
+      final response = await ApiHelper.get('/client/saved-services');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -138,7 +138,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
         );
       }
 
-      final response = await ApiClient.post(
+      final response = await ApiHelper.post(
         '/client/saved-services/${service.id}/remove',
         {},
       );

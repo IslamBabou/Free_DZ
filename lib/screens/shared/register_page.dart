@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import "package:free_dz/screens/freelancers/free_setup.dart";
+import 'package:free_dz/services/api_helper.dart';
+import 'package:free_dz/services/auth_service.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+// ==========================================
+// REGISTER PAGE
+// ==========================================
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -23,87 +28,97 @@ class _RegisterPageState extends State<RegisterPage> {
   String _role = 'client';
   bool _isLoading = false;
 
-  // Replace with your actual API URL
-  final String apiUrl = 'http://localhost/api';
-
-  void _register() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        Uri.parse('$apiUrl/signup'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
+      final response = await ApiHelper.post(
+        '/signup',
+        {
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'password': _passwordController.text,
           'phone_number': _phoneController.text.trim(),
           'role': _role,
-        }),
+        },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         debugPrint('Registration successful: $data');
         
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registration successful!'),
-              backgroundColor: Colors.green,
+        // Store token if provided
+        final token = data['token'] ?? data['accessToken'];
+        if (token != null) {
+          await AuthService.saveToken(token);
+          debugPrint('Token saved: $token');
+        }
+        
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+
+        // Small delay for better UX
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (!mounted) return;
+
+        // Extract user role from response
+        final userRole = data['user']?['role'] ?? data['role'];
+        final userId = data['user']?['id'] ?? data['id'];
+        
+        // Role-based navigation
+        if (userRole == 'FREELANCER' || userRole == 'freelancer') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => FreelancerProfileSetupPage(
+                freelancerId: userId.toString(),
+              ),
             ),
           );
-
-          // Extract user role from response
-          final userRole = data['user']?['role'] ?? data['role'];
-          final userId = data['user']?['id'] ?? data['id'];
-          
-          // Role-based navigation
-          if (userRole == 'FREELANCER' || userRole == 'freelancer') {
-            // Navigate to Freelancer Profile Setup
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FreelancerProfileSetupPage(
-                  freelancerId: userId.toString(),
-                ),
-              ),
-            );
-          } else if (userRole == 'CLIENT' || userRole == 'client') {
-            // Navigate directly to Client Home
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ClientHomePage(),
-              ),
-            );
-          } else {
-            // Fallback for unknown roles
-            debugPrint('Unknown role: $userRole');
-            Navigator.pushReplacementNamed(context, '/login');
-          }
+        } else if (userRole == 'CLIENT' || userRole == 'client') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ClientMainScreen(),
+            ),
+          );
+        } else {
+          debugPrint('Unknown role: $userRole');
+          Navigator.pushReplacementNamed(context, '/login');
         }
       } else {
         final error = jsonDecode(response.body);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error['message'] ?? 'Registration failed'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-
-    } catch (e) {
-      debugPrint('Error: $e');
-      if (mounted) {
+        if (!mounted) return;
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text(error['message'] ?? 'Registration failed'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
+    } catch (e) {
+      debugPrint('Error: $e');
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -126,18 +141,17 @@ class _RegisterPageState extends State<RegisterPage> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
                 Image.asset(
-                'assets/images/logo.png',
-                height: 180,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 16),
+                  'assets/images/logo.png',
+                  height: 180,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 16),
                 const Text(
                   'Free_dz',
                   style: TextStyle(
@@ -151,7 +165,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   style: TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
-
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
@@ -163,7 +176,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       value == null || value.isEmpty ? 'Name is required' : null,
                 ),
                 const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -183,7 +195,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
@@ -198,7 +209,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           : null,
                 ),
                 const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
@@ -213,7 +223,6 @@ class _RegisterPageState extends State<RegisterPage> {
                           : null,
                 ),
                 const SizedBox(height: 16),
-
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: true,
@@ -230,9 +239,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-
                 DropdownButtonFormField<String>(
-                  initialValue: _role,
+                  value: _role,
                   decoration: const InputDecoration(
                     labelText: 'Role',
                     border: OutlineInputBorder(),
@@ -253,26 +261,23 @@ class _RegisterPageState extends State<RegisterPage> {
                   },
                 ),
                 const SizedBox(height: 24),
-
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE2B025),
-                    foregroundColor: Colors.black, // good contrast
-                  ),
+                      backgroundColor: const Color(0xFFE2B025),
+                      foregroundColor: Colors.black,
+                    ),
                     onPressed: _isLoading ? null : _register,
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const CircularProgressIndicator(color: Colors.black)
                         : const Text('Create Account'),
                   ),
                 ),
                 const SizedBox(height: 16),
-
                 TextButton(
                   onPressed: () {
-                    
                     Navigator.pop(context);
                   },
                   child: const Text('Already have an account? Login'),

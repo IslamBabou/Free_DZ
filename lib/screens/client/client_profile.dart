@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_profile.dart';
-import 'package:free_dz/services/api_client.dart';
+import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 
 // ==========================================
@@ -57,7 +57,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     });
 
     try {
-      final response = await ApiClient.get('/client/profile');
+      final response = await ApiHelper.get('/client/profile');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -101,7 +101,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      final response = await ApiClient.post(
+      final response = await ApiHelper.post(
         '/client/profile',
         {
           'full_name': _fullNameController.text.trim(),
@@ -239,7 +239,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
 
   Future<void> _deleteAccount() async {
     try {
-      final response = await ApiClient.post('/client/profile/delete', {});
+      final response = await ApiHelper.post('/client/profile/delete', {});
       
       if (response.statusCode == 200) {
         await AuthService.logout();

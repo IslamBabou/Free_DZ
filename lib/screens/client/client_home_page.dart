@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_home_page.dart';
 import '../../services/auth_service.dart';
 import "client_profile.dart";
-import 'package:free_dz/services/api_client.dart';
+import 'package:free_dz/services/api_helper.dart';
 import "../shared/chat_list.dart";
 import "saved_screen.dart";
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
@@ -74,7 +74,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     try {
       
       // Fetch freelancers from your API
-      final response = await ApiClient.get('/client/freelancers');
+      final response = await ApiHelper.get('/client/freelancers');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
