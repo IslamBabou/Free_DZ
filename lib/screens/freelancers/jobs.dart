@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/services/api_helper.dart';
 
 // ==========================================
 // MODELS
@@ -24,16 +25,81 @@ class Job {
     required this.postedDate,
     required this.proposalsCount,
   });
+
+  factory Job.fromJson(Map<String, dynamic> json) {
+    return Job(
+      id: json['id'].toString(),
+      title: json['title'] ?? '',
+      clientName: json['clientName'] ?? 'Anonymous',
+      budgetRange: json['budgetRange'] ?? '0 DA',
+      category: json['category'] ?? 'General',
+      description: json['description'] ?? '',
+      postedDate: DateTime.parse(json['postedDate'] ?? DateTime.now().toIso8601String()),
+      proposalsCount: json['proposalsCount'] ?? 0,
+    );
+  }
 }
 
 // ==========================================
 // JOBS PAGE
 // ==========================================
 
-class JobsPage extends StatelessWidget {
+class JobsPage extends StatefulWidget {
   const JobsPage({super.key});
 
-  // Temporary mock data
+  @override
+  State<JobsPage> createState() => _JobsPageState();
+}
+
+class _JobsPageState extends State<JobsPage> {
+  bool _isLoading = true;
+  bool _hasError = false;
+  List<Job> _jobs = [];
+  List<Job> _filteredJobs = [];
+  final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadJobs();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadJobs() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
+    try {
+      // API call using ApiHelper
+      final data = await ApiHelper.get('/jobs');
+      
+      setState(() {
+        _jobs = (data['jobs'] as List?)
+            ?.map((job) => Job.fromJson(job))
+            .toList() ?? [];
+        _filteredJobs = _jobs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading jobs: $e');
+      
+      // Fallback to mock data
+      setState(() {
+        _jobs = _getMockJobs();
+        _filteredJobs = _jobs;
+        _isLoading = false;
+        debugPrint('Using mock data due to API error');
+      });
+    }
+  }
+
   List<Job> _getMockJobs() {
     return [
       Job(
@@ -99,10 +165,23 @@ class JobsPage extends StatelessWidget {
     ];
   }
 
+  void _searchJobs(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredJobs = _jobs;
+      } else {
+        _filteredJobs = _jobs.where((job) {
+          return job.title.toLowerCase().contains(query.toLowerCase()) ||
+                 job.description.toLowerCase().contains(query.toLowerCase()) ||
+                 job.category.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final jobs = _getMockJobs();
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade50,
@@ -112,7 +191,7 @@ class JobsPage extends StatelessWidget {
             _buildHeader(isDark),
             _buildSearchBar(isDark),
             Expanded(
-              child: _buildJobsList(jobs, isDark),
+              child: _buildJobsList(isDark),
             ),
           ],
         ),
@@ -159,6 +238,12 @@ class JobsPage extends StatelessWidget {
           IconButton(
             onPressed: () {
               // TODO: Navigate to filters
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Filters coming soon'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
             },
             icon: const Icon(Icons.tune),
             style: IconButton.styleFrom(
@@ -175,10 +260,21 @@ class JobsPage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       color: isDark ? const Color(0xFF121212) : Colors.grey.shade50,
       child: TextField(
+        controller: _searchController,
+        onChanged: _searchJobs,
         decoration: InputDecoration(
           hintText: 'Search jobs...',
           hintStyle: TextStyle(color: Colors.grey.shade500),
           prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    _searchJobs('');
+                  },
+                  icon: Icon(Icons.clear, color: Colors.grey.shade500),
+                )
+              : null,
           filled: true,
           fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
           border: OutlineInputBorder(
@@ -191,8 +287,34 @@ class JobsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildJobsList(List<Job> jobs, bool isDark) {
-    if (jobs.isEmpty) {
+  Widget _buildJobsList(bool isDark) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.orange.shade400),
+            const SizedBox(height: 16),
+            const Text(
+              'Failed to load jobs',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadJobs,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_filteredJobs.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -200,7 +322,7 @@ class JobsPage extends StatelessWidget {
             Icon(Icons.work_outline, size: 100, color: Colors.grey.shade400),
             const SizedBox(height: 24),
             Text(
-              'No jobs available',
+              _searchController.text.isEmpty ? 'No jobs available' : 'No results found',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -209,7 +331,9 @@ class JobsPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Check back later for new opportunities',
+              _searchController.text.isEmpty
+                  ? 'Check back later for new opportunities'
+                  : 'Try searching with different keywords',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
@@ -218,12 +342,15 @@ class JobsPage extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: jobs.length,
-      itemBuilder: (context, index) {
-        return JobCard(job: jobs[index], isDark: isDark);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadJobs,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _filteredJobs.length,
+        itemBuilder: (context, index) {
+          return JobCard(job: _filteredJobs[index], isDark: isDark);
+        },
+      ),
     );
   }
 }
@@ -377,6 +504,12 @@ class JobCard extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         // TODO: Navigate to job details
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Job details coming soon'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
