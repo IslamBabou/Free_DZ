@@ -1,10 +1,8 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
-
 import 'package:free_dz/models/client_profile.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:free_dz/services/api_client.dart';
+import 'package:free_dz/services/auth_service.dart';
 
 // ==========================================
 // CLIENT PROFILE PAGE
@@ -18,9 +16,6 @@ class ClientProfilePage extends StatefulWidget {
 }
 
 class _ClientProfilePageState extends State<ClientProfilePage> {
-  // API Configuration
-  static const String _apiBaseUrl = 'https://localhost/api';
-  
   // State
   bool _isLoading = true;
   bool _hasError = false;
@@ -62,14 +57,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     });
 
     try {
-      
-      final response = await http.get(
-        Uri.parse('$_apiBaseUrl/client/profile'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN', // Get from secure storage
-        },
-      );
+      final response = await ApiClient.get('/client/profile');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -80,39 +68,21 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         _phoneController.text = _profile!.phoneNumber ?? '';
         _locationController.text = _profile!.location ?? '';
         
+        if (!mounted) return;
         setState(() => _isLoading = false);
       } else if (response.statusCode == 401) {
-        // Unauthorized - redirect to login
+        await AuthService.logout();
+        if (!mounted) return;
         _redirectToLogin();
       } else if (response.statusCode == 403) {
-        // Forbidden - wrong role
+        if (!mounted) return;
         _redirectToRoleDashboard();
       } else {
         throw Exception('Failed to load profile');
       }
-      
-
-      // TEMPORARY: Mock data
-      await Future.delayed(const Duration(seconds: 1));
-      _profile = ClientProfile(
-        id: 'CLT12345',
-        email: 'client@example.com',
-        fullName: 'Ahmed Benali',
-        phoneNumber: '+213 555 123 456',
-        location: 'Algiers, Algeria',
-        avatarUrl: 'https://i.pravatar.cc/150?img=8',
-        isVerified: true,
-        role: 'CLIENT',
-        createdAt: DateTime(2023, 1, 15),
-      );
-      
-      _fullNameController.text = _profile!.fullName;
-      _phoneController.text = _profile!.phoneNumber ?? '';
-      _locationController.text = _profile!.location ?? '';
-      
-      setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading profile: $e');
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -131,46 +101,32 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      
-      final response = await http.put(
-        Uri.parse('$_apiBaseUrl/client/profile'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN',
-        },
-        body: json.encode({
-          'fullName': _fullNameController.text.trim(),
-          'phoneNumber': _phoneController.text.trim(),
+      final response = await ApiClient.post(
+        '/client/profile',
+        {
+          'full_name': _fullNameController.text.trim(),
+          'phone_number': _phoneController.text.trim(),
           'location': _locationController.text.trim(),
-        }),
+        },
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _profile = ClientProfile.fromJson(data);
+
+        if (mounted) {
+          Navigator.pop(context); // Close loading
+          setState(() => _isEditing = false);
+          _showSnackBar('Profile updated successfully', isError: false);
+        }
+      } else if (response.statusCode == 401) {
+        await AuthService.logout();
+        if (mounted) {
+          Navigator.pop(context);
+          _redirectToLogin();
+        }
       } else {
         throw Exception('Failed to update profile');
-      }
-      
-
-      // TEMPORARY: Mock update
-      await Future.delayed(const Duration(seconds: 1));
-      _profile = ClientProfile(
-        id: _profile!.id,
-        email: _profile!.email,
-        fullName: _fullNameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-        location: _locationController.text.trim(),
-        avatarUrl: _profile!.avatarUrl,
-        isVerified: _profile!.isVerified,
-        role: _profile!.role,
-        createdAt: _profile!.createdAt,
-      );
-
-      if (mounted) {
-        Navigator.pop(context); // Close loading
-        setState(() => _isEditing = false);
-        _showSnackBar('Profile updated successfully', isError: false);
       }
     } catch (e) {
       if (mounted) {
@@ -181,6 +137,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -192,11 +149,10 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
 
   void _redirectToLogin() {
     debugPrint('Redirecting to login...');
-    Navigator.pushNamed(context,'/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   void _redirectToRoleDashboard() {
-    // TODO: Implement navigation based on role
     debugPrint('Redirecting to appropriate dashboard...');
   }
 
@@ -209,7 +165,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-                    
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -222,15 +177,14 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     );
 
     if (confirmed == true) {
-      _logout();
-      Navigator.pushNamed(context, '/login');
+      await _logout();
     }
   }
 
   Future<void> _logout() async {
-    // TODO: Implement logout API call and clear tokens
-    debugPrint('Logging out...');
-    _redirectToLogin();
+    await AuthService.logout();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   Future<void> _showDeleteAccountDialog() async {
@@ -279,13 +233,25 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     );
 
     if (secondConfirm == true) {
-      _deleteAccount();
+      await _deleteAccount();
     }
   }
 
   Future<void> _deleteAccount() async {
-    // TODO: Implement delete account API call
-    debugPrint('Deleting account...');
+    try {
+      final response = await ApiClient.post('/client/profile/delete', {});
+      
+      if (response.statusCode == 200) {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      } else {
+        throw Exception('Failed to delete account');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Failed to delete account', isError: true);
+    }
   }
 
   @override
@@ -332,8 +298,8 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             pinned: true,
             backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
             elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text('Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            flexibleSpace: const FlexibleSpaceBar(
+              title: Text('Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               centerTitle: true,
             ),
             actions: [
@@ -361,23 +327,14 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Profile Header
                   _buildProfileHeader(isDark),
                   const SizedBox(height: 24),
-
-                  // Account Information
                   _buildAccountInformation(isDark),
                   const SizedBox(height: 16),
-
-                  // Preferences
                   _buildPreferences(isDark),
                   const SizedBox(height: 16),
-
-                  // Security & Privacy
                   _buildSecurity(isDark),
                   const SizedBox(height: 16),
-
-                  // Account Actions
                   _buildAccountActions(isDark),
                   const SizedBox(height: 100),
                 ],
@@ -397,7 +354,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -405,7 +362,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       ),
       child: Column(
         children: [
-          // Avatar
           Stack(
             children: [
               CircleAvatar(
@@ -442,8 +398,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Name
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -462,8 +416,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             ],
           ),
           const SizedBox(height: 4),
-
-          // Email
           Text(
             _profile!.email,
             style: TextStyle(
@@ -472,8 +424,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             ),
           ),
           const SizedBox(height: 4),
-
-          // Account ID
           Text(
             'ID: ${_profile!.id}',
             style: TextStyle(
@@ -494,7 +444,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -514,8 +464,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Full Name
             TextFormField(
               controller: _fullNameController,
               enabled: _isEditing,
@@ -532,8 +480,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Phone Number
             TextFormField(
               controller: _phoneController,
               enabled: _isEditing,
@@ -553,8 +499,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
               },
             ),
             const SizedBox(height: 16),
-
-            // Location
             TextFormField(
               controller: _locationController,
               enabled: _isEditing,
@@ -565,8 +509,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Email (Read-only)
             TextFormField(
               initialValue: _profile!.email,
               enabled: false,
@@ -577,7 +519,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
                 suffixIcon: const Icon(Icons.lock_outline, size: 18),
               ),
             ),
-
             if (_isEditing) ...[
               const SizedBox(height: 20),
               SizedBox(
@@ -606,7 +547,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -624,21 +565,15 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Language
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.language),
             title: const Text('Language'),
             subtitle: Text(_selectedLanguage),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Show language selection dialog
-            },
+            onTap: () {},
           ),
           const Divider(),
-
-          // Push Notifications
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             secondary: const Icon(Icons.notifications_outlined),
@@ -649,8 +584,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             },
           ),
           const Divider(),
-
-          // Email Notifications
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             secondary: const Icon(Icons.email_outlined),
@@ -661,17 +594,13 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             },
           ),
           const Divider(),
-
-          // Theme
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Theme'),
             subtitle: Text(_themeMode == ThemeMode.system ? 'System' : _themeMode == ThemeMode.dark ? 'Dark' : 'Light'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Show theme selection dialog
-            },
+            onTap: () {},
           ),
         ],
       ),
@@ -686,7 +615,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -704,42 +633,30 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Change Password
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.lock_outline),
             title: const Text('Change Password'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to change password screen
-            },
+            onTap: () {},
           ),
           const Divider(),
-
-          // Manage Sessions
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.devices_outlined),
             title: const Text('Manage Sessions'),
             subtitle: const Text('View and manage your active sessions'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to sessions screen
-            },
+            onTap: () {},
           ),
           const Divider(),
-
-          // Two-Factor Authentication
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.security_outlined),
             title: const Text('Two-Factor Authentication'),
             subtitle: const Text('Not enabled'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              // TODO: Navigate to 2FA setup
-            },
+            onTap: () {},
           ),
         ],
       ),
@@ -754,7 +671,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -772,8 +689,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             ),
           ),
           const SizedBox(height: 16),
-
-          // Logout
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.logout, color: Colors.orange),
@@ -782,8 +697,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             onTap: _showLogoutDialog,
           ),
           const Divider(),
-
-          // Delete Account
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.delete_forever, color: Colors.red),

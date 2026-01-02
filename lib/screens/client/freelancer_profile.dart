@@ -1,142 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/services/api_client.dart';
 import 'package:free_dz/services/auth_service.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:free_dz/models/freelancer_profile.dart';
 import 'package:free_dz/models/chat_models.dart';
 import 'package:free_dz/screens/shared/message.dart';
-
-// ==========================================
-// API SERVICE
-// ==========================================
-
-class FreelancerApiService {
-  static const String baseUrl = 'https://localhost/api'; // Replace with your API URL
-  
-  // Fetch freelancer profile
-  static Future<FreelancerProfile> getFreelancerProfile(String freelancerId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/freelancers/$freelancerId'),
-        headers: {
-          'Content-Type': 'application/json',
-          // Add authentication token if needed
-          // 'Authorization': 'Bearer ${YourAuthService.token}',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return _parseFreelancerProfile(data);
-      } else if (response.statusCode == 404) {
-        throw Exception('Freelancer not found');
-      } else if (response.statusCode == 403) {
-        throw Exception('Access denied');
-      } else {
-        throw Exception('Failed to load profile: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }
-
-  // Parse FreelancerProfile from JSON
-  static FreelancerProfile _parseFreelancerProfile(Map<String, dynamic> json) {
-    return FreelancerProfile(
-      id: json['id'] ?? '',
-      fullName: json['full_name'] ?? json['fullName'] ?? '',
-      professionalTitle: json['professional_title'] ?? json['professionalTitle'] ?? '',
-      location: json['location'] ?? '',
-      avatarUrl: json['avatar_url'] ?? json['avatarUrl'],
-      isOnline: json['is_online'] ?? json['isOnline'] ?? false,
-      isVerified: json['is_verified'] ?? json['isVerified'] ?? false,
-      rating: (json['rating'] ?? 0).toDouble(),
-      totalReviews: json['total_reviews'] ?? json['totalReviews'] ?? 0,
-      completedJobs: json['completed_jobs'] ?? json['completedJobs'] ?? 0,
-      responseTime: json['response_time'] ?? json['responseTime'] ?? '',
-      bio: json['bio'] ?? '',
-      yearsOfExperience: json['years_of_experience'] ?? json['yearsOfExperience'] ?? 0,
-      languages: List<String>.from(json['languages'] ?? []),
-      skills: (json['skills'] as List<dynamic>?)
-              ?.map((skill) => SkillTag(
-                    name: skill['name'] ?? '',
-                    category: skill['category'] ?? '',
-                  ))
-              .toList() ??
-          [],
-      services: (json['services'] as List<dynamic>?)
-              ?.map((service) => ServiceCard(
-                    id: service['id'] ?? '',
-                    title: service['title'] ?? '',
-                    description: service['description'] ?? '',
-                    priceFrom: service['price_from'] ?? service['priceFrom'] ?? 0,
-                    priceTo: service['price_to'] ?? service['priceTo'] ?? 0,
-                    deliveryDays: service['delivery_days'] ?? service['deliveryDays'] ?? 0,
-                    rating: (service['rating'] ?? 0).toDouble(),
-                    reviewCount: service['review_count'] ?? service['reviewCount'] ?? 0,
-                  ))
-              .toList() ??
-          [],
-      portfolio: (json['portfolio'] as List<dynamic>?)
-              ?.map((item) => PortfolioItem(
-                    id: item['id'] ?? '',
-                    imageUrl: item['image_url'] ?? item['imageUrl'] ?? '',
-                    title: item['title'] ?? '',
-                  ))
-              .toList() ??
-          [],
-      reviews: (json['reviews'] as List<dynamic>?)
-              ?.map((review) => Review(
-                    id: review['id'] ?? '',
-                    clientName: review['client_name'] ?? review['clientName'] ?? '',
-                    rating: review['rating'] ?? 0,
-                    comment: review['comment'] ?? '',
-                    createdAt: DateTime.parse(
-                      review['created_at'] ?? review['createdAt'] ?? DateTime.now().toIso8601String(),
-                    ),
-                    serviceName: review['service_name'] ?? review['serviceName'],
-                  ))
-              .toList() ??
-          [],
-      ratingDistribution: _parseRatingDistribution(json['rating_distribution'] ?? json['ratingDistribution']),
-    );
-  }
-
-  // Parse rating distribution
-  static Map<int, int> _parseRatingDistribution(dynamic distribution) {
-    if (distribution == null) return {};
-    if (distribution is Map) {
-      return distribution.map((key, value) => MapEntry(
-            int.tryParse(key.toString()) ?? 0,
-            value is int ? value : 0,
-          ));
-    }
-    return {};
-  }
-
-  // Toggle save/bookmark freelancer
-  static Future<bool> toggleSaveFreelancer(String freelancerId, bool currentState) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/freelancers/$freelancerId/save'),
-        headers: {
-          'Content-Type': 'application/json',
-          // 'Authorization': 'Bearer ${YourAuthService.token}',
-        },
-        body: json.encode({'saved': !currentState}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['saved'] ?? !currentState;
-      }
-      throw Exception('Failed to save freelancer');
-    } catch (e) {
-      throw Exception('Error saving: $e');
-    }
-  }
-}
 
 // ==========================================
 // FREELANCER PROFILE SCREEN (CLIENT VIEW)
@@ -188,7 +56,6 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
     });
 
     try {
-      // ✅ Use ApiClient like in ClientHomePage
       final response = await ApiClient.get('/freelancers/${widget.freelancerId}');
 
       if (response.statusCode == 200) {
@@ -197,15 +64,23 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
 
         setState(() {
           _profile = FreelancerProfile.fromJson(data);
-          _isSaved = data['isSaved'] ?? false; // optional field from API
+          _isSaved = data['is_saved'] ?? data['isSaved'] ?? false;
           _isLoading = false;
         });
       } else if (response.statusCode == 401) {
-        await AuthService.logout(); // handle token expiration
+        await AuthService.logout();
         if (!mounted) return;
         setState(() {
           _hasError = true;
-          _errorMessage = 'Unauthorized. Please login again.';
+          _errorMessage = 'Session expired. Please login again.';
+          _isLoading = false;
+        });
+      } else if (response.statusCode == 404) {
+        if (!mounted) return;
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Freelancer not found';
+          _isLoading = false;
         });
       } else {
         throw Exception('Failed to load profile: ${response.statusCode}');
@@ -221,7 +96,6 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
     }
   }
 
-
   Future<void> _toggleSave() async {
     if (_isSaving || _profile == null) return;
 
@@ -229,23 +103,29 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
 
     try {
       final response = await ApiClient.post(
-      '/freelancers/${widget.freelancerId}/save', // endpoint
-      {'save': !_isSaved},                        // body as a Map
+        '/freelancers/${widget.freelancerId}/save',
+        {'save': !_isSaved},
       );
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (!mounted) return;
+
         setState(() {
-          _isSaved = data['saved'] ?? !_isSaved;
+          _isSaved = data['saved'] ?? data['is_saved'] ?? !_isSaved;
           _isSaving = false;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_isSaved ? 'Freelancer saved' : 'Freelancer removed'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_isSaved ? 'Freelancer saved' : 'Freelancer removed'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else if (response.statusCode == 401) {
         await AuthService.logout();
         throw Exception('Unauthorized');
@@ -253,18 +133,18 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
         throw Exception('Failed to toggle save');
       }
     } catch (e) {
-        if (!mounted) return;
-          setState(() => _isSaving = false);
+      if (!mounted) return;
+      setState(() => _isSaving = false);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
-
 
   // ==========================================
   // UI
@@ -556,7 +436,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '\$${service.priceFrom}${service.priceTo != null ? ' - \$${service.priceTo}' : '+'}',
+                '${service.priceFrom} DA${service.priceTo != null ? ' - ${service.priceTo} DA' : '+'}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -681,7 +561,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                     avatarUrl: _profile!.avatarUrl,
                   );
 
-                  final String conversationId = 'client_${freelancerInfo.id}';
+                  final String conversationId = 'conv_${widget.freelancerId}';
 
                   Navigator.push(
                     context,

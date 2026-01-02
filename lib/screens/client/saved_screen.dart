@@ -1,11 +1,8 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/saved_services.dart';
-import 'package:http/http.dart' as http;
-
-
-
+import 'package:free_dz/services/api_client.dart';
+import 'package:free_dz/services/auth_service.dart';
 
 // ==========================================
 // SAVED SERVICES PAGE
@@ -19,9 +16,6 @@ class SavedFreelancersPage extends StatefulWidget {
 }
 
 class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
-  // API Configuration
-  static const String _apiBaseUrl = 'https://your-api.com/api';
-  
   // State
   bool _isLoading = true;
   bool _hasError = false;
@@ -54,118 +48,28 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     });
 
     try {
-      
-      final response = await http.get(
-        Uri.parse('$_apiBaseUrl/client/saved-services'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN', // Get from secure storage
-        },
-      );
+      final response = await ApiClient.get('/client/saved-services');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _savedServices = data.map((json) => SavedService.fromJson(json)).toList();
         _applyFiltersAndSort();
+        
+        if (!mounted) return;
         setState(() => _isLoading = false);
       } else if (response.statusCode == 401) {
+        await AuthService.logout();
+        if (!mounted) return;
         _redirectToLogin();
       } else if (response.statusCode == 403) {
+        if (!mounted) return;
         _redirectToRoleDashboard();
       } else {
         throw Exception('Failed to load saved services');
       }
-      
-
-      // TEMPORARY: Mock data
-      await Future.delayed(const Duration(seconds: 1));
-      _savedServices = [
-        SavedService(
-          id: '1',
-          serviceId: 'SRV001',
-          title: 'Modern Logo Design',
-          description: 'Professional logo design with unlimited revisions',
-          category: 'Design',
-          priceRange: '5,000 - 15,000 DA',
-          rating: 4.9,
-          reviewCount: 127,
-          freelancer: FreelancerInfo(
-            id: 'FR001',
-            name: 'Sarah Ahmed',
-            avatarUrl: 'https://i.pravatar.cc/150?img=1',
-          ),
-          savedAt: DateTime.now().subtract(const Duration(days: 2)),
-        ),
-        SavedService(
-          id: '2',
-          serviceId: 'SRV002',
-          title: 'Flutter Mobile App Development',
-          description: 'Cross-platform mobile app with modern UI/UX',
-          category: 'Development',
-          priceRange: '50,000 - 200,000 DA',
-          rating: 4.8,
-          reviewCount: 89,
-          freelancer: FreelancerInfo(
-            id: 'FR002',
-            name: 'Karim Benali',
-            avatarUrl: 'https://i.pravatar.cc/150?img=2',
-          ),
-          savedAt: DateTime.now().subtract(const Duration(days: 5)),
-        ),
-        SavedService(
-          id: '3',
-          serviceId: 'SRV003',
-          title: 'SEO-Optimized Content Writing',
-          description: 'High-quality blog posts and articles',
-          category: 'Writing',
-          priceRange: '3,000 - 8,000 DA',
-          rating: 5.0,
-          reviewCount: 156,
-          freelancer: FreelancerInfo(
-            id: 'FR003',
-            name: 'Amina Boudiaf',
-            avatarUrl: 'https://i.pravatar.cc/150?img=3',
-          ),
-          savedAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-        SavedService(
-          id: '4',
-          serviceId: 'SRV004',
-          title: 'Social Media Marketing',
-          description: 'Complete social media management and growth',
-          category: 'Marketing',
-          priceRange: '10,000 - 30,000 DA',
-          rating: 4.7,
-          reviewCount: 92,
-          freelancer: FreelancerInfo(
-            id: 'FR004',
-            name: 'Yacine Mansouri',
-            avatarUrl: 'https://i.pravatar.cc/150?img=4',
-          ),
-          savedAt: DateTime.now().subtract(const Duration(days: 7)),
-        ),
-        SavedService(
-          id: '5',
-          serviceId: 'SRV005',
-          title: 'Video Editing & Post-Production',
-          description: 'Professional video editing for YouTube and social media',
-          category: 'Video',
-          priceRange: '8,000 - 25,000 DA',
-          rating: 4.9,
-          reviewCount: 134,
-          freelancer: FreelancerInfo(
-            id: 'FR005',
-            name: 'Lina Boukhari',
-            avatarUrl: 'https://i.pravatar.cc/150?img=5',
-          ),
-          savedAt: DateTime.now().subtract(const Duration(hours: 12)),
-        ),
-      ];
-      
-      _applyFiltersAndSort();
-      setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading saved services: $e');
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -234,29 +138,19 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
         );
       }
 
-      
-      final response = await http.delete(
-        Uri.parse('$_apiBaseUrl/client/saved-services/${service.id}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN',
-        },
+      final response = await ApiClient.post(
+        '/client/saved-services/${service.id}/remove',
+        {},
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('Failed to remove service');
-      }
-      
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        
+        setState(() {
+          _savedServices.removeWhere((s) => s.id == service.id);
+          _applyFiltersAndSort();
+        });
 
-      // TEMPORARY: Mock removal
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      setState(() {
-        _savedServices.removeWhere((s) => s.id == service.id);
-        _applyFiltersAndSort();
-      });
-
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Service removed'),
@@ -264,38 +158,42 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+      } else if (response.statusCode == 401) {
+        await AuthService.logout();
+        if (!mounted) return;
+        _redirectToLogin();
+      } else {
+        throw Exception('Failed to remove service');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to remove service'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   void _redirectToLogin() {
     debugPrint('Redirecting to login...');
-    Navigator.pushNamed(context,'/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   void _redirectToRoleDashboard() {
-    // TODO: Implement navigation based on role
     debugPrint('Redirecting to appropriate dashboard...');
   }
 
   void _navigateToExplore() {
-    // TODO: Navigate to search/explore screen
     debugPrint('Navigate to explore services...');
+    // TODO: Navigate to search/explore screen
   }
 
   void _viewServiceDetails(SavedService service) {
-    // TODO: Navigate to service details screen
     debugPrint('View service details: ${service.title}');
+    // TODO: Navigate to service details screen
   }
 
   void _showFilterDialog() {
@@ -470,7 +368,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withAlpha(13),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -687,7 +585,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
+              color: Colors.black.withAlpha(13),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -748,7 +646,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                     onPressed: () => _removeService(service),
                     icon: const Icon(Icons.bookmark, color: Colors.blue),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.blue.withValues(alpha:0.1),
+                      backgroundColor: Colors.blue.withAlpha(26),
                     ),
                   ),
                 ],
@@ -833,7 +731,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha:0.1),
+                      color: Colors.green.withAlpha(26),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
