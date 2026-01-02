@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/free_home.dart';
 import 'package:free_dz/screens/freelancers/free_setup.dart';
+import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'dart:async';
 
 // ==========================================
@@ -26,19 +27,27 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
   // State
   bool _isLoading = true;
   bool _hasError = false;
-  int _selectedIndex = 0;
   
   // Dashboard data
-  int _profileViews = 0;
-  int _activeProposals = 0;
   int _completedJobs = 0;
   List<Job> _availableJobs = [];
   int _unreadNotifications = 0;
+
+  // Bottom Bar Controller
+  final _pageController = PageController(initialPage: 0);
+  final NotchBottomBarController _bottomBarController = NotchBottomBarController(index: 0);
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _loadDashboardData();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDashboardData() async {
@@ -61,8 +70,6 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          _profileViews = data['profileViews'] ?? 0;
-          _activeProposals = data['activeProposals'] ?? 0;
           _completedJobs = data['completedJobs'] ?? 0;
           _unreadNotifications = data['unreadNotifications'] ?? 0;
           _availableJobs = (data['availableJobs'] as List?)
@@ -81,8 +88,6 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
       await Future.delayed(const Duration(seconds: 1));
       
       setState(() {
-        _profileViews = 42;
-        _activeProposals = 3;
         _completedJobs = 15;
         _unreadNotifications = 5;
         _availableJobs = [
@@ -149,7 +154,6 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
   }
 
   void _navigateToProfileSetup() {
-    
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -159,27 +163,10 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
         ),
       ),
     );
-    
   }
 
   void _navigateToNotifications() {
     _showSnackBar('Notifications page coming soon');
-  }
-
-  void _navigateToProfile() {
-    _showSnackBar('Profile page coming soon');
-  }
-
-  void _navigateToFindJobs() {
-    _showSnackBar('Find Jobs page coming soon');
-  }
-
-  void _navigateToMyProposals() {
-    _showSnackBar('My Proposals page coming soon');
-  }
-
-  void _navigateToMessages() {
-    _showSnackBar('Messages page coming soon');
   }
 
   void _viewJobDetails(Job job) {
@@ -191,24 +178,6 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
       ),
       builder: (context) => _buildJobDetailsSheet(job),
     );
-  }
-
-  void _onBottomNavTap(int index) {
-    setState(() => _selectedIndex = index);
-    
-    switch (index) {
-      case 0: // Home - already here
-        break;
-      case 1: // Jobs
-        _navigateToFindJobs();
-        break;
-      case 2: // Messages
-        _navigateToMessages();
-        break;
-      case 3: // Profile
-        _navigateToProfile();
-        break;
-    }
   }
 
   void _showSnackBar(String message) {
@@ -228,8 +197,18 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade50,
       appBar: _buildAppBar(isDark),
-      body: _buildBody(isDark),
-      bottomNavigationBar: _buildBottomNavBar(isDark),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          _buildHomePage(isDark),
+          _buildJobsPage(isDark),
+          _buildMessagesPage(isDark),
+          _buildProfilePage(isDark),
+        ],
+      ),
+      extendBody: true,
+      bottomNavigationBar: _buildAnimatedBottomBar(isDark),
     );
   }
 
@@ -291,7 +270,14 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
         Padding(
           padding: const EdgeInsets.only(right: 12, left: 4),
           child: GestureDetector(
-            onTap: _navigateToProfile,
+            onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => _buildProfilePage(isDark),
+                      ),
+                    );
+                    },
             child: CircleAvatar(
               radius: 18,
               backgroundColor: Colors.blue.shade100,
@@ -299,11 +285,12 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
             ),
           ),
         ),
+        const SizedBox(width: 8),
       ],
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildHomePage(bool isDark) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -333,15 +320,88 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     return RefreshIndicator(
       onRefresh: _loadDashboardData,
       child: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.only(top: 16, bottom: 100),
         children: [
           if (widget.showCompletionBanner) _buildCompletionBanner(isDark),
-          _buildQuickStats(isDark),
-          const SizedBox(height: 24),
-          _buildPrimaryActions(isDark),
+          _buildCompletedJobsCard(isDark),
           const SizedBox(height: 24),
           _buildAvailableJobs(isDark),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJobsPage(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.work_outline, size: 80, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            'Find Jobs',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Browse and search for jobs',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessagesPage(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            'Messages',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your conversations with clients',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfilePage(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.person_outline, size: 80, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            'Profile',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'View and edit your profile',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
         ],
       ),
     );
@@ -414,54 +474,10 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     );
   }
 
-  Widget _buildQuickStats(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatCard(
-              icon: Icons.visibility_outlined,
-              label: 'Profile Views',
-              value: '$_profileViews',
-              color: Colors.blue,
-              isDark: isDark,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              icon: Icons.description_outlined,
-              label: 'Active Proposals',
-              value: '$_activeProposals',
-              color: Colors.orange,
-              isDark: isDark,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              icon: Icons.check_circle_outline,
-              label: 'Completed',
-              value: '$_completedJobs',
-              color: Colors.green,
-              isDark: isDark,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required bool isDark,
-  }) {
+  Widget _buildCompletedJobsCard(bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -473,114 +489,50 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrimaryActions(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.search,
-              label: 'Find Jobs',
-              onTap: _navigateToFindJobs,
-              isDark: isDark,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.check_circle_outline,
+              color: Colors.green,
+              size: 32,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
-            child: _buildActionButton(
-              icon: Icons.description,
-              label: 'My Proposals',
-              onTap: _navigateToMyProposals,
-              isDark: isDark,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$_completedJobs',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Completed Jobs',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.chat,
-              label: 'Messages',
-              onTap: _navigateToMessages,
-              isDark: isDark,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildActionButton(
-              icon: Icons.person,
-              label: 'My Profile',
-              onTap: _navigateToProfile,
-              isDark: isDark,
-            ),
+          Icon(
+            Icons.trending_up,
+            color: Colors.green,
+            size: 32,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required bool isDark,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.blue, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -603,7 +555,10 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
                 ),
               ),
               TextButton(
-                onPressed: _navigateToFindJobs,
+                onPressed: () {
+                  _pageController.jumpToPage(1);
+                  _bottomBarController.jumpTo(1);
+                },
                 child: const Text('See All'),
               ),
             ],
@@ -881,53 +836,75 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     );
   }
 
-  Widget _buildBottomNavBar(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+  Widget _buildAnimatedBottomBar(bool isDark) {
+    return AnimatedNotchBottomBar(
+      notchBottomBarController: _bottomBarController,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      showLabel: true,
+      textOverflow: TextOverflow.visible,
+      maxLine: 1,
+      shadowElevation: 5,
+      kBottomRadius: 28.0,
+      notchColor: Colors.blue,
+      removeMargins: false,
+      bottomBarWidth: 500,
+      showShadow: true,
+      durationInMilliSeconds: 300,
+      itemLabelStyle: TextStyle(
+        fontSize: 10,
+        color: isDark ? Colors.white : Colors.black87,
+      ),
+      elevation: 1,
+      bottomBarItems: [
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.home_outlined,
+            color: isDark ? Colors.white70 : Colors.grey.shade600,
           ),
-        ],
-      ),
-      child: SafeArea(
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onBottomNavTap,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey.shade600,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.work_outline),
-              activeIcon: Icon(Icons.work),
-              label: 'Jobs',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline),
-              activeIcon: Icon(Icons.chat_bubble),
-              label: 'Messages',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
+          activeItem: const Icon(
+            Icons.home,
+            color: Colors.white,
+          ),
+          itemLabel: 'Home',
         ),
-      ),
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.work_outline,
+            color: isDark ? Colors.white70 : Colors.grey.shade600,
+          ),
+          activeItem: const Icon(
+            Icons.work,
+            color: Colors.white,
+          ),
+          itemLabel: 'Jobs',
+        ),
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.chat_bubble_outline,
+            color: isDark ? Colors.white70 : Colors.grey.shade600,
+          ),
+          activeItem: const Icon(
+            Icons.chat_bubble,
+            color: Colors.white,
+          ),
+          itemLabel: 'Messages',
+        ),
+        BottomBarItem(
+          inActiveItem: Icon(
+            Icons.person_outline,
+            color: isDark ? Colors.white70 : Colors.grey.shade600,
+          ),
+          activeItem: const Icon(
+            Icons.person,
+            color: Colors.white,
+          ),
+          itemLabel: 'Profile',
+        ),
+      ],
+      onTap: (index) {
+        _pageController.jumpToPage(index);
+      },
+      kIconSize: 24.0,
     );
   }
 
@@ -943,4 +920,3 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     }
   }
 }
-

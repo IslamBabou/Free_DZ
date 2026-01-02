@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
 import 'package:free_dz/screens/freelancers/free_home.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -42,8 +43,9 @@ class _LoginPageState extends State<LoginPage> {
         // Store token
         final token = data['token'] ?? data['accessToken'];
         if (token != null) {
-          // TODO: Save token to secure storage
-          // await secureStorage.write(key: 'auth_token', value: token);
+          final storage = const FlutterSecureStorage();
+          await storage.write(key: 'auth_token', value: token);
+
           debugPrint('Token saved: $token');
         }
 

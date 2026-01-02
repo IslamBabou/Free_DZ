@@ -9,24 +9,24 @@ import 'package:http/http.dart' as http;
 
 
 // ==========================================
-// CLIENT CHAT PAGE
+// CHAT PAGE
 // ==========================================
 
-class ClientChatPage extends StatefulWidget {
+class ChatPage extends StatefulWidget {
   final String conversationId;
   final FreelancerInfo freelancer;
 
-  const ClientChatPage({
+  const ChatPage({
     super.key,
     required this.conversationId,
     required this.freelancer,
   });
 
   @override
-  State<ClientChatPage> createState() => _ClientChatPageState();
+  State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ClientChatPageState extends State<ClientChatPage> {
+class _ChatPageState extends State<ChatPage> {
   // API Configuration
   static const String _apiBaseUrl = 'https://localhost/api';
   

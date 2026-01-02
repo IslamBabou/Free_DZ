@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/services/api_client.dart';
+import 'package:free_dz/services/auth_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:free_dz/models/freelancer_profile.dart';
 import 'package:free_dz/models/chat_models.dart';
-import 'package:free_dz/screens/client/message.dart';
+import 'package:free_dz/screens/shared/message.dart';
 
 // ==========================================
 // API SERVICE
@@ -186,14 +188,31 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
     });
 
     try {
-      final profile = await FreelancerApiService.getFreelancerProfile(widget.freelancerId);
-      
-      setState(() {
-        _profile = profile;
-        _isSaved = false; // You can add this to your API response if needed
-        _isLoading = false;
-      });
+      // ✅ Use ApiClient like in ClientHomePage
+      final response = await ApiClient.get('/freelancers/${widget.freelancerId}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (!mounted) return;
+
+        setState(() {
+          _profile = FreelancerProfile.fromJson(data);
+          _isSaved = data['isSaved'] ?? false; // optional field from API
+          _isLoading = false;
+        });
+      } else if (response.statusCode == 401) {
+        await AuthService.logout(); // handle token expiration
+        if (!mounted) return;
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Unauthorized. Please login again.';
+        });
+      } else {
+        throw Exception('Failed to load profile: ${response.statusCode}');
+      }
     } catch (e) {
+      debugPrint('Error loading profile: $e');
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -202,44 +221,50 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
     }
   }
 
+
   Future<void> _toggleSave() async {
     if (_isSaving || _profile == null) return;
 
     setState(() => _isSaving = true);
 
     try {
-      final newSavedState = await FreelancerApiService.toggleSaveFreelancer(
-        widget.freelancerId,
-        _isSaved,
+      final response = await ApiClient.post(
+      '/freelancers/${widget.freelancerId}/save', // endpoint
+      {'save': !_isSaved},                        // body as a Map
       );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (!mounted) return;
+        setState(() {
+          _isSaved = data['saved'] ?? !_isSaved;
+          _isSaving = false;
+        });
 
-      setState(() {
-        _isSaved = newSavedState;
-        _isSaving = false;
-      });
-
-      // Show feedback
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_isSaved ? 'Freelancer saved' : 'Freelancer removed'),
             duration: const Duration(seconds: 2),
           ),
         );
+      } else if (response.statusCode == 401) {
+        await AuthService.logout();
+        throw Exception('Unauthorized');
+      } else {
+        throw Exception('Failed to toggle save');
       }
     } catch (e) {
-      setState(() => _isSaving = false);
-      
-      if (mounted) {
+        if (!mounted) return;
+          setState(() => _isSaving = false);
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
-      }
     }
   }
+
 
   // ==========================================
   // UI
@@ -661,7 +686,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ClientChatPage(
+                      builder: (_) => ChatPage(
                         conversationId: conversationId,
                         freelancer: freelancerInfo,
                       ),

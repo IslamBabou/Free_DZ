@@ -7,17 +7,17 @@ import 'message.dart';
 
 
 // ==========================================
-// CLIENT CHAT LIST PAGE
+// CHAT LIST PAGE
 // ==========================================
 
-class ClientChatListPage extends StatefulWidget {
-  const ClientChatListPage({super.key});
+class ChatListPage extends StatefulWidget {
+  const ChatListPage({super.key});
 
   @override
-  State<ClientChatListPage> createState() => _ClientChatListPageState();
+  State<ChatListPage> createState() => _ChatListPageState();
 }
 
-class _ClientChatListPageState extends State<ClientChatListPage> {
+class _ChatListPageState extends State<ChatListPage> {
   // API Configuration
   static const String _apiBaseUrl = 'https://localhost/api';
   
@@ -184,7 +184,7 @@ class _ClientChatListPageState extends State<ClientChatListPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ClientChatPage(
+        builder: (context) => ChatPage(
           conversationId: conversation.id,
           freelancer: conversation.freelancer,
         ),
