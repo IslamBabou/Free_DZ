@@ -73,7 +73,7 @@ class FreeDzApp extends StatelessWidget {
         ),
       ),
       // Initial route
-      initialRoute: '/freelancer_home',
+      initialRoute: '/client_home',
       // Define routes
       routes: {
     '/': (context) => const LoginPage(),
