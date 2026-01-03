@@ -1,44 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/screens/freelancers/jobs_details.dart';
 import 'package:free_dz/services/api_helper.dart';
+import 'package:free_dz/models/jobs.dart';
 
-// ==========================================
-// MODELS
-// ==========================================
-
-class Job {
-  final String id;
-  final String title;
-  final String clientName;
-  final String budgetRange;
-  final String category;
-  final String description;
-  final DateTime postedDate;
-  final int proposalsCount;
-
-  Job({
-    required this.id,
-    required this.title,
-    required this.clientName,
-    required this.budgetRange,
-    required this.category,
-    required this.description,
-    required this.postedDate,
-    required this.proposalsCount,
-  });
-
-  factory Job.fromJson(Map<String, dynamic> json) {
-    return Job(
-      id: json['id'].toString(),
-      title: json['title'] ?? '',
-      clientName: json['clientName'] ?? 'Anonymous',
-      budgetRange: json['budgetRange'] ?? '0 DA',
-      category: json['category'] ?? 'General',
-      description: json['description'] ?? '',
-      postedDate: DateTime.parse(json['postedDate'] ?? DateTime.now().toIso8601String()),
-      proposalsCount: json['proposalsCount'] ?? 0,
-    );
-  }
-}
 
 // ==========================================
 // JOBS PAGE
@@ -92,15 +56,15 @@ class _JobsPageState extends State<JobsPage> {
       
       // Fallback to mock data
       setState(() {
-        _jobs = _getMockJobs();
-        _filteredJobs = _jobs;
+/*         _jobs = _getMockJobs();
+ */        _filteredJobs = _jobs;
         _isLoading = false;
         debugPrint('Using mock data due to API error');
       });
     }
   }
 
-  List<Job> _getMockJobs() {
+  /* List<Job> _getMockJobs() {
     return [
       Job(
         id: 'JOB001',
@@ -162,8 +126,8 @@ class _JobsPageState extends State<JobsPage> {
         postedDate: DateTime.now().subtract(const Duration(days: 3)),
         proposalsCount: 6,
       ),
-    ];
-  }
+    ]; 
+  }*/
 
   void _searchJobs(String query) {
     setState(() {
@@ -504,12 +468,12 @@ class JobCard extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         // TODO: Navigate to job details
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Job details coming soon'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => JobDetailsPage(jobId: job.id ),
+                            ),
+                          );
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
