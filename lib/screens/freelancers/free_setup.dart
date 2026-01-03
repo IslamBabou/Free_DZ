@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:free_dz/screens/freelancers/free_home.dart';
 import 'package:free_dz/services/api_helper.dart';
+import 'package:http/http.dart' as http;
 
 // ==========================================
 // FREELANCER PROFILE SETUP PAGE
@@ -97,6 +98,33 @@ class _FreelancerProfileSetupPageState extends State<FreelancerProfileSetupPage>
 
       // API call using ApiHelper
       await ApiHelper.put('/freelancer/profile', profileData);
+      const String apiBaseUrl = 'http://192.168.5.40:8000/api';
+      
+      final response = await http.put(
+        Uri.parse('$apiBaseUrl/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer YOUR_TOKEN',
+        },
+        // body: json.encode({
+        //   'professionalTitle': _titleController.text.trim(),
+        //   'skills': _skillsController.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList(),
+        //   'city': _cityController.text.trim(),
+        //   'bio': _bioController.text.trim(),
+        //   'hourlyRate': _hourlyRateController.text.isNotEmpty ? double.parse(_hourlyRateController.text) : null,
+        //   'isProfileComplete': true,
+        // }),
+      );
+
+      if (response.statusCode == 200) {
+        _navigateToHome(isComplete: true);
+      } else {
+        throw Exception('Failed to save profile');
+      }
+      
+
+      // TEMPORARY: Mock API call
+      await Future.delayed(const Duration(seconds: 2));
       
       if (mounted) {
         _navigateToHome(isComplete: true);
