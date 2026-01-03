@@ -35,12 +35,12 @@ class FreelancerProfileData {
   factory FreelancerProfileData.fromJson(Map<String, dynamic> json) {
     return FreelancerProfileData(
       id: json['id'].toString(),
-      fullName: json['fullName'] ?? 'Unknown User',
-      title: json['title'] ?? 'Freelancer',
-      avatarUrl: json['avatarUrl'],
+      fullName: json['full_name'] ?? 'Unknown User',
+      title: json['professional_title'] ?? 'Freelancer',
+      avatarUrl: json['avatar_url'],
       rating: (json['rating'] ?? 0).toDouble(),
-      reviewsCount: json['reviewsCount'] ?? 0,
-      completedJobs: json['completedJobs'] ?? 0,
+      reviewsCount: json['total_reviews'] ?? 0,
+      completedJobs: json['completed_jobs'] ?? 0,
       inProgressJobs: json['inProgressJobs'] ?? 0,
       earnings: json['earnings'] ?? '0 DA',
     );
@@ -74,45 +74,51 @@ class _FreelancerProfilePageState extends State<FreelancerProfilePage> {
     _loadProfile();
   }
 
-  Future<void> _loadProfile() async {
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-    });
+Future<void> _loadProfile() async {
+  setState(() {
+    _isLoading = true;
+    _hasError = false;
+  });
 
-    try {
-      // Determine endpoint based on whether we have a specific ID
-      final endpoint = widget.freelancerId != null
-          ? '/freelancer/${widget.freelancerId}'
-          : '/freelancer/me';
+  try {
+    final endpoint = '/freelancer/profile';
 
-      final data = await ApiHelper.get(endpoint);
+    final data = await ApiHelper.get(endpoint); // The response data
 
+final profileData = data['user']['freelancer_profile'];
+
+    if (profileData != null) {
       setState(() {
-        _profileData = FreelancerProfileData.fromJson(data);
+        _profileData = FreelancerProfileData.fromJson(profileData);
+
         _isLoading = false;
       });
-    } catch (e) {
-      debugPrint('Error loading profile: $e');
-
-      // Fallback to mock data for development
-      setState(() {
-        _profileData = FreelancerProfileData(
-          id: widget.freelancerId ?? 'FREELANCER_123',
-          fullName: 'Mehdi Ziane',
-          title: 'Senior Flutter Developer',
-          avatarUrl: 'https://i.pravatar.cc/150?img=68',
-          rating: 4.8,
-          reviewsCount: 127,
-          completedJobs: 45,
-          inProgressJobs: 3,
-          earnings: '2,500,000 DA',
-        );
-        _isLoading = false;
-        debugPrint('Using mock data due to API error');
-      });
+    } else {
+      throw Exception('Profile data is missing');
     }
+
+  } catch (e) {
+    debugPrint('Error loading profile: $e');
+
+    // Fallback to mock data for development
+    setState(() {
+      _profileData = FreelancerProfileData(
+        id: widget.freelancerId ?? 'FREELANCER_123',
+        fullName: 'Mehdi Ziane',
+        title: 'Senior Flutter Developer',
+        avatarUrl: 'https://i.pravatar.cc/150?img=68',
+        rating: 4.8,
+        reviewsCount: 127,
+        completedJobs: 45,
+        inProgressJobs: 3,
+        earnings: '2,500,000 DA',
+      );
+      _isLoading = false;
+      debugPrint('Using mock data due to API error');
+    });
   }
+}
+
 
   void _navigateToEditProfile() {
     ScaffoldMessenger.of(context).showSnackBar(

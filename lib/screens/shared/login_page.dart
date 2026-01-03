@@ -23,103 +23,104 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
-      final response = await ApiHelper.post(
-        '/login',
-        {
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text,
-        },
+  try {
+    // ApiHelper.post() now returns a Map, not http.Response
+    final response = await ApiHelper.post(
+      '/login',
+      {
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+      },
+    );
+
+    // Check your API's status field or token existence
+    if (response['status'] == true || response['token'] != null) {
+      debugPrint('Login successful: $response');
+
+      // Store token
+      final token = response['token'] ?? response['accessToken'];
+      if (token != null) {
+        await AuthService.saveToken(token);
+        debugPrint('Token saved: $token');
+      }
+
+      // Extract user role and profile completion
+      final userRole = response['user']?['role'] ?? response['role'];
+      final isProfileComplete = response['user']?['is_profile_complete'] ??
+                                response['user']?['isProfileComplete'] ??
+                                response['is_profile_complete'] ??
+                                response['isProfileComplete'] ??
+                                true;
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login successful! Welcome back'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        debugPrint('Login successful: $data');
-        
-        // Store token
-        final token = data['token'] ?? data['accessToken'];
-        if (token != null) {
-          await AuthService.saveToken(token);
-          debugPrint('Token saved: $token');
-        }
-
-        // Extract user role and data
-        final userRole = data['user']?['role'] ?? data['role'];
-        final isProfileComplete = data['user']?['is_profile_complete'] ?? 
-                                  data['user']?['isProfileComplete'] ?? 
-                                  data['is_profile_complete'] ?? 
-                                  data['isProfileComplete'] ?? 
-                                  true;
-        
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login successful! Welcome back'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-
-        // Small delay for better UX
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        if (!mounted) return;
-
-        // Role-based navigation
-        if (userRole == 'FREELANCER' || userRole == 'freelancer') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FreelancerHomePage(
-                showCompletionBanner: !isProfileComplete,
-              ),
-            ),
-          );
-        } else if (userRole == 'CLIENT' || userRole == 'client') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ClientMainScreen(),
-            ),
-          );
-        } else {
-          debugPrint('Warning: Unknown role "$userRole"');
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      } else {
-        final error = jsonDecode(response.body);
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error['message'] ?? 'Login failed'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error: $e');
+      await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
-      
+
+      // Navigate based on role
+      if (userRole == 'FREELANCER' || userRole == 'freelancer') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FreelancerHomePage(
+              showCompletionBanner: !isProfileComplete,
+            ),
+          ),
+        );
+      } else if (userRole == 'CLIENT' || userRole == 'client') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ClientMainScreen(),
+          ),
+        );
+      } else {
+        debugPrint('Warning: Unknown role "$userRole"');
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } else {
+      // Login failed, show message from API
+      final message = response['message'] ?? 'Login failed';
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+          content: Text(message),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    }
+  } catch (e) {
+    debugPrint('Error: $e');
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
+
 
   @override
   void dispose() {

@@ -3,7 +3,6 @@ import "package:free_dz/screens/freelancers/free_setup.dart";
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
-import 'dart:convert';
 
 // ==========================================
 // REGISTER PAGE
@@ -29,102 +28,98 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
 
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    try {
-      final response = await ApiHelper.post(
-        '/signup',
-        {
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text,
-          'phone_number': _phoneController.text.trim(),
-          'role': _role,
-        },
-      );
+  try {
+    final response = await ApiHelper.post(
+      '/signup',
+      {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'password': _passwordController.text,
+        'phone_number': _phoneController.text.trim(),
+        'role': _role,
+      },
+    );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        debugPrint('Registration successful: $data');
-        
-        // Store token if provided
-        final token = data['token'] ?? data['accessToken'];
-        if (token != null) {
-          await AuthService.saveToken(token);
-          debugPrint('Token saved: $token');
-        }
-        
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-
-        // Small delay for better UX
-        await Future.delayed(const Duration(milliseconds: 500));
-        
-        if (!mounted) return;
-
-        // Extract user role from response
-        final userRole = data['user']?['role'] ?? data['role'];
-        final userId = data['user']?['id'] ?? data['id'];
-        
-        // Role-based navigation
-        if (userRole == 'FREELANCER' || userRole == 'freelancer') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => FreelancerProfileSetupPage(
-                freelancerId: userId.toString(),
-              ),
-            ),
-          );
-        } else if (userRole == 'CLIENT' || userRole == 'client') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ClientMainScreen(),
-            ),
-          );
-        } else {
-          debugPrint('Unknown role: $userRole');
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      } else {
-        final error = jsonDecode(response.body);
-        if (!mounted) return;
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error['message'] ?? 'Registration failed'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+    // ✅ Check success using the response Map
+    if (response['status'] == true || response['token'] != null) {
+      debugPrint('Registration successful: $response');
+      
+      // Store token if provided
+      final token = response['token'] ?? response['accessToken'];
+      if (token != null) {
+        await AuthService.saveToken(token);
+        debugPrint('Token saved: $token');
       }
-    } catch (e) {
-      debugPrint('Error: $e');
+      
       if (!mounted) return;
       
       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration successful!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+
+      // Extract user role and id
+      final userRole = response['user']?['role'] ?? response['role'];
+      final userId = response['user']?['id'] ?? response['id'];
+
+      // Role-based navigation
+      if (userRole == 'FREELANCER' || userRole == 'freelancer') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FreelancerProfileSetupPage(
+              freelancerId: userId.toString(),
+            ),
+          ),
+        );
+      } else if (userRole == 'CLIENT' || userRole == 'client') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ClientMainScreen(),
+          ),
+        );
+      } else {
+        debugPrint('Unknown role: $userRole');
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } else {
+      // ✅ Access error message directly from response
+      final message = response['message'] ?? 'Registration failed';
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+          content: Text(message),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
+  } catch (e) {
+    debugPrint('Error: $e');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
+
 
   @override
   void dispose() {
