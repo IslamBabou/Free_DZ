@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/free_home.dart';
 import 'package:free_dz/screens/freelancers/free_setup.dart';
+import 'package:free_dz/screens/freelancers/notifications_page.dart';
 import 'package:free_dz/screens/freelancers/profile.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
@@ -68,68 +69,11 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
       });
     } catch (e) {
       debugPrint('Error loading dashboard: $e');
-      
-      // Fallback to mock data for testing
       setState(() {
-        _completedJobs = 15;
-        _unreadNotifications = 5;
-        _availableJobs = [
-          Job(
-            id: 'job_1',
-            title: 'Mobile App UI/UX Design',
-            clientName: 'Tech Startup Inc.',
-            budget: 1500,
-            description: 'Looking for an experienced UI/UX designer to create a modern mobile app design for our fintech startup. Must include user research and prototyping.',
-            location: 'Remote',
-            postedAt: DateTime.now().subtract(const Duration(hours: 2)),
-            categoryBadge: 'Design',
-          ),
-          Job(
-            id: 'job_2',
-            title: 'Flutter Developer for E-commerce App',
-            clientName: 'Fashion Store',
-            budget: 3000,
-            description: 'Need a skilled Flutter developer to build a complete e-commerce mobile application with payment integration and admin panel.',
-            location: 'Algiers',
-            postedAt: DateTime.now().subtract(const Duration(hours: 5)),
-            categoryBadge: 'Development',
-          ),
-          Job(
-            id: 'job_3',
-            title: 'Logo Design for Tech Company',
-            clientName: 'Innovation Labs',
-            budget: 500,
-            description: 'Create a professional and modern logo for our AI technology company. Should convey innovation and trust.',
-            location: 'Remote',
-            postedAt: DateTime.now().subtract(const Duration(days: 1)),
-            categoryBadge: 'Design',
-          ),
-          Job(
-            id: 'job_4',
-            title: 'Content Writer for Blog Posts',
-            clientName: 'Digital Marketing Agency',
-            budget: 800,
-            description: 'We need a talented content writer to produce 10 high-quality blog posts about digital marketing and SEO.',
-            location: 'Remote',
-            postedAt: DateTime.now().subtract(const Duration(days: 2)),
-            categoryBadge: 'Writing',
-          ),
-          Job(
-            id: 'job_5',
-            title: 'WordPress Website Development',
-            clientName: 'Small Business Owner',
-            budget: 1200,
-            description: 'Looking for a WordPress developer to create a professional business website with contact forms and SEO optimization.',
-            location: 'Oran',
-            postedAt: DateTime.now().subtract(const Duration(days: 3)),
-            categoryBadge: 'Development',
-          ),
-        ];
+        _hasError = true;
         _isLoading = false;
-        // Don't set hasError to true, just log and use mock data
-        debugPrint('Using mock data due to API error');
       });
-    }
+      }
   }
 
   void _navigateToProfileSetup() {
@@ -145,7 +89,13 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
   }
 
   void _navigateToNotifications() {
-    _showSnackBar('Notifications page coming soon');
+      Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const FreelancerNotificationsPage(),
+      ),
+    );
+    
   }
 
   void _navigateToProfile() {
@@ -202,6 +152,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
 
   PreferredSizeWidget _buildAppBar(bool isDark) {
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       elevation: 0,
       title: Row(

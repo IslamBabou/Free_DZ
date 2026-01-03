@@ -363,13 +363,13 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
       children: [
         Text(_profile!.bio),
         const SizedBox(height: 16),
-        if (_profile!.yearsOfExperience != null) ...[
-          Text(
-            'Experience: ${_profile!.yearsOfExperience} years',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 16),
-        ],
+        ...[
+        Text(
+          'Experience: ${_profile!.yearsOfExperience} years',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 16),
+      ],
         if (_profile!.languages.isNotEmpty) ...[
           const Text(
             'Languages',
@@ -436,26 +436,26 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${service.priceFrom} DA${service.priceTo != null ? ' - ${service.priceTo} DA' : '+'}',
+                '${service.priceFrom} DA${' - ${service.priceTo} DA'}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
-              if (service.rating != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star, size: 14, color: Colors.amber),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${service.rating}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
-              ],
+              ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.star, size: 14, color: Colors.amber),
+                  const SizedBox(width: 2),
+                  Text(
+                    '${service.rating}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
             ],
           ),
         );

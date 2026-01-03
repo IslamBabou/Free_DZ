@@ -1,12 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:free_dz/models/chat_models.dart';
+import 'package:free_dz/services/api_helper.dart';
 import 'dart:async';
-
-import 'package:http/http.dart' as http;
-
 
 // ==========================================
 // CHAT PAGE
@@ -27,9 +23,6 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-  // API Configuration
-  static const String _apiBaseUrl = 'https://localhost/api';
-  
   // State
   bool _isLoading = true;
   bool _hasError = false;
@@ -84,109 +77,37 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     try {
+      final data = await ApiHelper.get('/client/conversations/${widget.conversationId}/messages');
       
-      final response = await http.get(
-        Uri.parse('$_apiBaseUrl/client/conversations/${widget.conversationId}/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> messagesJson = data['messages'];
-        _messages = messagesJson.map((json) => ChatMessage.fromJson(json)).toList();
-        _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        
-        if (!silent) {
-          setState(() => _isLoading = false);
-        } else {
-          setState(() {});
-        }
-        
-        _scrollToBottom();
-      } else if (response.statusCode == 401) {
+      final List<dynamic> messagesJson = data['messages'];
+      _messages = messagesJson.map((json) => ChatMessage.fromJson(json)).toList();
+      _messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+      
+      if (!silent) {
+        setState(() => _isLoading = false);
+      } else {
+        setState(() {});
+      }
+      
+      _scrollToBottom();
+    } on Exception catch (e) {
+      final errorMsg = e.toString();
+      
+      if (errorMsg.contains('Unauthorized')) {
         _redirectToLogin();
-      } else if (response.statusCode == 403) {
+      } else if (errorMsg.contains('403')) {
         setState(() {
           _isBlocked = true;
           _isLoading = false;
         });
       } else {
-        throw Exception('Failed to load messages');
-      }
-      
-
-      // TEMPORARY: Mock data
-      await Future.delayed(Duration(milliseconds: silent ? 100 : 1000));
-      
-      if (_messages.isEmpty) {
-        _messages = [
-          ChatMessage(
-            id: '1',
-            conversationId: widget.conversationId,
-            senderId: widget.freelancer.id,
-            senderRole: 'FREELANCER',
-            content: 'Hello! Thank you for reaching out. How can I help you today?',
-            timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-            status: MessageStatus.read,
-            type: MessageType.text,
-          ),
-          ChatMessage(
-            id: '2',
-            conversationId: widget.conversationId,
-            senderId: _currentUserId,
-            senderRole: 'CLIENT',
-            content: 'Hi! I\'m interested in your logo design service. Can you tell me more about your process?',
-            timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 55)),
-            status: MessageStatus.read,
-            type: MessageType.text,
-          ),
-          ChatMessage(
-            id: '3',
-            conversationId: widget.conversationId,
-            senderId: widget.freelancer.id,
-            senderRole: 'FREELANCER',
-            content: 'Of course! I start with understanding your brand, then create 3 initial concepts. We refine your favorite until you\'re completely satisfied.',
-            timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 50)),
-            status: MessageStatus.read,
-            type: MessageType.text,
-          ),
-          ChatMessage(
-            id: '4',
-            conversationId: widget.conversationId,
-            senderId: _currentUserId,
-            senderRole: 'CLIENT',
-            content: 'That sounds great! How long does the process usually take?',
-            timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 45)),
-            status: MessageStatus.read,
-            type: MessageType.text,
-          ),
-          ChatMessage(
-            id: '5',
-            conversationId: widget.conversationId,
-            senderId: widget.freelancer.id,
-            senderRole: 'FREELANCER',
-            content: 'Typically 5-7 business days from start to final delivery. I can work with rush timelines if needed.',
-            timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
-            status: MessageStatus.delivered,
-            type: MessageType.text,
-          ),
-        ];
-      }
-      
-      if (!silent) {
-        setState(() => _isLoading = false);
-      }
-      _scrollToBottom();
-    } catch (e) {
-      debugPrint('Error loading messages: $e');
-      if (!silent) {
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-        });
+        debugPrint('Error loading messages: $e');
+        if (!silent) {
+          setState(() {
+            _hasError = true;
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -229,49 +150,19 @@ class _ChatPageState extends State<ChatPage> {
     _scrollToBottom();
 
     try {
-      
-      final response = await http.post(
-        Uri.parse('$_apiBaseUrl/client/conversations/${widget.conversationId}/messages'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN',
-        },
-        body: json.encode({
+      final data = await ApiHelper.post(
+        '/client/conversations/${widget.conversationId}/messages',
+        {
           'content': sanitizedContent,
           'type': 'text',
-        }),
+        },
       );
-
-      if (response.statusCode == 201) {
-        final data = json.decode(response.body);
-        final sentMessage = ChatMessage.fromJson(data);
-        
-        setState(() {
-          _messages.removeWhere((m) => m.id == tempMessage.id);
-          _messages.add(sentMessage);
-        });
-      } else {
-        throw Exception('Failed to send message');
-      }
       
-
-      // TEMPORARY: Mock send
-      await Future.delayed(const Duration(seconds: 1));
+      final sentMessage = ChatMessage.fromJson(data);
       
       setState(() {
-        final index = _messages.indexWhere((m) => m.id == tempMessage.id);
-        if (index != -1) {
-          _messages[index] = ChatMessage(
-            id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-            conversationId: tempMessage.conversationId,
-            senderId: tempMessage.senderId,
-            senderRole: tempMessage.senderRole,
-            content: tempMessage.content,
-            timestamp: tempMessage.timestamp,
-            status: MessageStatus.sent,
-            type: tempMessage.type,
-          );
-        }
+        _messages.removeWhere((m) => m.id == tempMessage.id);
+        _messages.add(sentMessage);
       });
     } catch (e) {
       debugPrint('Error sending message: $e');
@@ -321,12 +212,10 @@ class _ChatPageState extends State<ChatPage> {
 
   void _redirectToLogin() {
     debugPrint('Redirecting to login...');
-    Navigator.pushNamed(context,'/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   Future<void> _showActionMenu() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -755,7 +644,6 @@ class _ChatPageState extends State<ChatPage> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   prefixIcon: IconButton(
                     onPressed: _isBlocked ? null : () {
-                      // TODO: Implement file/image attachment
                       _showSnackBar('Attachment feature coming soon');
                     },
                     icon: Icon(Icons.attach_file, color: Colors.grey.shade600),

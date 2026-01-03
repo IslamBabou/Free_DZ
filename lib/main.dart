@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
 import 'package:free_dz/screens/freelancers/free_main.dart';
+import 'package:free_dz/services/theme_provider.dart';
 import 'screens/shared/login_page.dart';
 import 'screens/shared/register_page.dart';
 import 'screens/client/client_profile.dart';
 import 'screens/client/freelancer_profile.dart';
 import 'screens/freelancers/free_setup.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  runApp(const FreeDzApp());
+void main() async {
+   WidgetsFlutterBinding.ensureInitialized();
+  final themeProvider = ThemeProvider();
+  await themeProvider.loadThemeFromPrefs();
+
+   runApp(
+    ChangeNotifierProvider.value(
+      value: themeProvider, // use the already initialized instance
+      child: const FreeDzApp(),
+    ),
+  );
 }
 
 class FreeDzApp extends StatelessWidget {
@@ -16,6 +27,9 @@ class FreeDzApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get the themeProvider from Provider
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       title: 'Free_dz',
       debugShowCheckedModeBanner: false,
@@ -72,38 +86,32 @@ class FreeDzApp extends StatelessWidget {
           ),
         ),
       ),
-      // Initial route
-      initialRoute: '/client_home',
-      // Define routes
+      darkTheme: ThemeData.dark(),
+      themeMode: themeProvider.themeMode, // <- reactive now
+      initialRoute: '/freelancer_home',
       routes: {
-    '/': (context) => const LoginPage(),
-    '/login': (context) => const LoginPage(),
-    '/register': (context) => const RegisterPage(),
-    '/client_home': (context) => const ClientMainScreen(),
-    '/client_profile': (context) => const ClientProfilePage(),
-    '/freelancer_home': (context) => const FreelancerMainScreen(),
-    
-  },
-    onGenerateRoute: (settings) {
-      if (settings.name == '/freelancer_profile') {
-        final freelancerId = settings.arguments as String;
-
-        return MaterialPageRoute(
-          builder: (_) => FreelancerProfileScreen(
-            freelancerId: freelancerId,
-          ),
-        );
-      }
-      if (settings.name == '/freelancer_setup') {
-        final freelancerId = settings.arguments as String;
-        
-        return MaterialPageRoute(
-          builder: (_) => FreelancerProfileSetupPage(
-            freelancerId: freelancerId,
-          ),
-        );
-      }
-      return null;
-    },);
+        '/': (context) => const LoginPage(),
+        '/login': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
+        '/client_home': (context) => const ClientMainScreen(),
+        '/client_profile': (context) => const ClientProfilePage(),
+        '/freelancer_home': (context) => const FreelancerMainScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/freelancer_profile') {
+          final freelancerId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => FreelancerProfileScreen(freelancerId: freelancerId),
+          );
+        }
+        if (settings.name == '/freelancer_setup') {
+          final freelancerId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => FreelancerProfileSetupPage(freelancerId: freelancerId),
+          );
+        }
+        return null;
+      },
+    );
   }
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
+import 'package:free_dz/screens/freelancers/freelancers_services.dart';
 
 
 import 'free_home.dart';
 import 'jobs.dart';
 import 'package:free_dz/screens/shared/chat_list.dart';
-import 'profile.dart';
 
 // ==========================================
 // FREELANCER MAIN SCREEN
@@ -83,7 +83,7 @@ class _FreelancerMainScreenState extends State<FreelancerMainScreen> {
     const FreelancerHomePage(),
     const JobsPage(),
     const ChatListPage(),
-    const FreelancerProfilePage(),
+    const FreelancerServicesPage(),
   ];
 
   @override
@@ -150,14 +150,14 @@ class _FreelancerMainScreenState extends State<FreelancerMainScreen> {
           ),
           BottomBarItem(
             inActiveItem: Icon(
-              Icons.person_outline,
+              Icons.medical_services_outlined,
               color: Colors.grey,
             ),
             activeItem: Icon(
-              Icons.person,
+              Icons.medical_services_outlined,
               color: Colors.white,
             ),
-            itemLabel: 'Profile',
+            itemLabel: 'Services',
           ),
         ],
         onTap: (index) {

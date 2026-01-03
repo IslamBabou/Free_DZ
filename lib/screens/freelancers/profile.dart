@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
+import 'package:free_dz/services/theme_provider.dart';
+import 'package:provider/provider.dart';
+
 
 // ==========================================
 // FREELANCER PROFILE MODEL
@@ -156,14 +159,45 @@ class _FreelancerProfilePageState extends State<FreelancerProfilePage> {
     );
   }
 
-  void _navigateToSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Settings coming soon'),
-        behavior: SnackBarBehavior.floating,
+  void _switchMode() {
+  final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Select Theme'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.light_mode),
+            title: const Text('Light'),
+            onTap: () {
+              themeProvider.setThemeMode(ThemeMode.light); // ✅ updates provider
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.dark_mode),
+            title: const Text('Dark'),
+            onTap: () {
+              themeProvider.setThemeMode(ThemeMode.dark);
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_suggest),
+            title: const Text('System'),
+            onTap: () {
+              themeProvider.setThemeMode(ThemeMode.system);
+              Navigator.pop(context);
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _navigateToHelp() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -561,11 +595,18 @@ class _FreelancerProfilePageState extends State<FreelancerProfilePage> {
           ),
           _ActionTile(
             isDark: isDark,
-            icon: Icons.settings_outlined,
-            title: 'Settings',
-            subtitle: 'App preferences and notifications',
-            onTap: _navigateToSettings,
+            icon: Icons.dark_mode_outlined,
+            title: 'Mode',
+            subtitle: Provider.of<ThemeProvider>(context)
+            .themeMode
+            .name
+            .replaceFirst(
+              Provider.of<ThemeProvider>(context).themeMode.name[0],
+              Provider.of<ThemeProvider>(context).themeMode.name[0].toUpperCase(),
+            ),
+            onTap: _switchMode,
           ),
+
           _Divider(isDark: isDark),
           _ActionTile(
             isDark: isDark,

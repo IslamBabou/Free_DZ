@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/chat_models.dart';
-import 'package:http/http.dart' as http;
+import 'package:free_dz/services/api_helper.dart';
 import 'message.dart';
-
 
 // ==========================================
 // CHAT LIST PAGE
@@ -18,9 +15,6 @@ class ChatListPage extends StatefulWidget {
 }
 
 class _ChatListPageState extends State<ChatListPage> {
-  // API Configuration
-  static const String _apiBaseUrl = 'https://localhost/api';
-  
   // State
   bool _isLoading = true;
   bool _hasError = false;
@@ -47,108 +41,28 @@ class _ChatListPageState extends State<ChatListPage> {
     });
 
     try {
+      final data = await ApiHelper.get('/client/conversations');
       
-      final response = await http.get(
-        Uri.parse('$_apiBaseUrl/client/conversations'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer YOUR_TOKEN',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        _conversations = data.map((json) => Conversation.fromJson(json)).toList();
-        _conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-        _filteredConversations = _conversations;
-        setState(() => _isLoading = false);
-      } else if (response.statusCode == 401) {
+      final List<dynamic> conversationsJson = data is List ? data : data['conversations'];
+      _conversations = conversationsJson.map((json) => Conversation.fromJson(json)).toList();
+      _conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      _filteredConversations = _conversations;
+      
+      setState(() => _isLoading = false);
+    } on Exception catch (e) {
+      final errorMsg = e.toString();
+      
+      if (errorMsg.contains('Unauthorized')) {
         _redirectToLogin();
-      } else if (response.statusCode == 403) {
+      } else if (errorMsg.contains('403')) {
         _redirectToRoleDashboard();
       } else {
-        throw Exception('Failed to load conversations');
+        debugPrint('Error loading conversations: $e');
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
       }
-      
-
-      // TEMPORARY: Mock data
-      await Future.delayed(const Duration(seconds: 1));
-      _conversations = [
-        Conversation(
-          id: 'conv_1',
-          freelancer: FreelancerInfo(
-            id: 'FR001',
-            name: 'Sarah Ahmed',
-            avatarUrl: 'https://i.pravatar.cc/150?img=1',
-            isOnline: true,
-          ),
-          lastMessage: 'Sure, I can help you with that! When would you like to start?',
-          lastMessageTime: DateTime.now().subtract(const Duration(minutes: 5)),
-          unreadCount: 2,
-          isOnline: true,
-        ),
-        Conversation(
-          id: 'conv_2',
-          freelancer: FreelancerInfo(
-            id: 'FR002',
-            name: 'Karim Benali',
-            avatarUrl: 'https://i.pravatar.cc/150?img=2',
-            isOnline: false,
-          ),
-          lastMessage: 'I\'ll send you the final design by tomorrow',
-          lastMessageTime: DateTime.now().subtract(const Duration(hours: 2)),
-          unreadCount: 0,
-          isOnline: false,
-        ),
-        Conversation(
-          id: 'conv_3',
-          freelancer: FreelancerInfo(
-            id: 'FR003',
-            name: 'Amina Boudiaf',
-            avatarUrl: 'https://i.pravatar.cc/150?img=3',
-            isOnline: true,
-          ),
-          lastMessage: 'Thank you for your feedback! I\'ve made the changes.',
-          lastMessageTime: DateTime.now().subtract(const Duration(hours: 5)),
-          unreadCount: 1,
-          isOnline: true,
-        ),
-        Conversation(
-          id: 'conv_4',
-          freelancer: FreelancerInfo(
-            id: 'FR004',
-            name: 'Yacine Mansouri',
-            avatarUrl: 'https://i.pravatar.cc/150?img=4',
-            isOnline: false,
-          ),
-          lastMessage: 'Great! Looking forward to working with you.',
-          lastMessageTime: DateTime.now().subtract(const Duration(days: 1)),
-          unreadCount: 0,
-          isOnline: false,
-        ),
-        Conversation(
-          id: 'conv_5',
-          freelancer: FreelancerInfo(
-            id: 'FR005',
-            name: 'Lina Boukhari',
-            avatarUrl: 'https://i.pravatar.cc/150?img=5',
-            isOnline: false,
-          ),
-          lastMessage: 'I\'ve completed the video editing. Please check your email.',
-          lastMessageTime: DateTime.now().subtract(const Duration(days: 2)),
-          unreadCount: 0,
-          isOnline: false,
-        ),
-      ];
-      
-      _filteredConversations = _conversations;
-      setState(() => _isLoading = false);
-    } catch (e) {
-      debugPrint('Error loading conversations: $e');
-      setState(() {
-        _hasError = true;
-        _isLoading = false;
-      });
     }
   }
 
@@ -168,18 +82,16 @@ class _ChatListPageState extends State<ChatListPage> {
 
   void _redirectToLogin() {
     debugPrint('Redirecting to login...');
-    Navigator.pushNamed(context,'/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   void _redirectToRoleDashboard() {
-    // TODO: Implement navigation based on role
     debugPrint('Redirecting to appropriate dashboard...');
+    Navigator.pushNamedAndRemoveUntil(context, '/role-selection', (route) => false);
   }
 
   void _openChat(Conversation conversation) {
-
     debugPrint('Opening chat with ${conversation.freelancer.name}');
-    
     
     Navigator.push(
       context,
@@ -190,7 +102,6 @@ class _ChatListPageState extends State<ChatListPage> {
         ),
       ),
     );
-    
   }
 
   @override
