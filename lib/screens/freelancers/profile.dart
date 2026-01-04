@@ -31,6 +31,7 @@ class FreelancerProfileData {
     required this.inProgressJobs,
     required this.earnings,
   });
+  
 
   factory FreelancerProfileData.fromJson(Map<String, dynamic> json) {
     return FreelancerProfileData(
