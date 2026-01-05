@@ -16,7 +16,7 @@ void main() async {
 
    runApp(
     ChangeNotifierProvider.value(
-      value: themeProvider, // use the already initialized instance
+      value: themeProvider, 
       child: const FreeDzApp(),
     ),
   );
@@ -90,7 +90,7 @@ class FreeDzApp extends StatelessWidget {
       themeMode: themeProvider.themeMode, // <- reactive now
       initialRoute: '/login',
       routes: {
-        '/': (context) => const LoginPage(),
+        '/': (context) => const FreelancerProfileSetupPage(),
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
         '/client_home': (context) => const ClientMainScreen(),
@@ -105,9 +105,8 @@ class FreeDzApp extends StatelessWidget {
           );
         }
         if (settings.name == '/freelancer_setup') {
-          final freelancerId = settings.arguments as String;
           return MaterialPageRoute(
-            builder: (_) => FreelancerProfileSetupPage(freelancerId: freelancerId),
+            builder: (_) => FreelancerProfileSetupPage(),
           );
         }
         return null;

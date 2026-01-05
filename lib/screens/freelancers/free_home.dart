@@ -57,7 +57,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
 
     try {
       // API call using ApiHelper
-      final data = await ApiHelper.get('/freelancer/dashboard');
+      final data = await ApiHelper.get('/projects');
       
       setState(() {
         _completedJobs = data['completedJobs'] ?? 0;
@@ -81,7 +81,6 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
       context,
       MaterialPageRoute(
         builder: (context) => const FreelancerProfileSetupPage(
-          freelancerId: 'FREELANCER_123',
           isFromSkip: true,
         ),
       ),

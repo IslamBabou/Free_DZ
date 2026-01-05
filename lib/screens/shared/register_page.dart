@@ -70,7 +70,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
       // Extract user role and id
       final userRole = response['user']?['role'] ?? response['role'];
-      final userId = response['user']?['id'] ?? response['id'];
 
       // Role-based navigation
       if (userRole == 'FREELANCER' || userRole == 'freelancer') {
@@ -78,7 +77,6 @@ class _RegisterPageState extends State<RegisterPage> {
           context,
           MaterialPageRoute(
             builder: (context) => FreelancerProfileSetupPage(
-              freelancerId: userId.toString(),
             ),
           ),
         );
