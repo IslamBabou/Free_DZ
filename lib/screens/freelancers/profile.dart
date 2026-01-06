@@ -3,6 +3,7 @@ import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 import 'package:free_dz/services/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:free_dz/widgets/reusable_widgets.dart';
 
 
 // ==========================================
@@ -100,23 +101,6 @@ final profileData = data['user']['freelancer_profile'];
 
   } catch (e) {
     debugPrint('Error loading profile: $e');
-
-    // Fallback to mock data for development
-    setState(() {
-      _profileData = FreelancerProfileData(
-        id: widget.freelancerId ?? 'FREELANCER_123',
-        fullName: 'Mehdi Ziane',
-        title: 'Senior Flutter Developer',
-        avatarUrl: 'https://i.pravatar.cc/150?img=68',
-        rating: 4.8,
-        reviewsCount: 127,
-        completedJobs: 45,
-        inProgressJobs: 3,
-        earnings: '2,500,000 DA',
-      );
-      _isLoading = false;
-      debugPrint('Using mock data due to API error');
-    });
   }
 }
 
@@ -165,46 +149,6 @@ final profileData = data['user']['freelancer_profile'];
       ),
     );
   }
-
-  void _switchMode() {
-  final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Select Theme'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.light_mode),
-            title: const Text('Light'),
-            onTap: () {
-              themeProvider.setThemeMode(ThemeMode.light); // ✅ updates provider
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.dark_mode),
-            title: const Text('Dark'),
-            onTap: () {
-              themeProvider.setThemeMode(ThemeMode.dark);
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings_suggest),
-            title: const Text('System'),
-            onTap: () {
-              themeProvider.setThemeMode(ThemeMode.system);
-              Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
-    ),
-  );
-}
 
   void _navigateToHelp() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -258,8 +202,8 @@ final profileData = data['user']['freelancer_profile'];
               Navigator.pop(context);
               await AuthService.logout();
               if (mounted) {
-                // Navigate to login screen
-                // Navigator.pushReplacementNamed(context, '/login');
+                
+                Navigator.pushReplacementNamed(context, '/login');
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Logged out successfully'),
@@ -467,7 +411,7 @@ final profileData = data['user']['freelancer_profile'];
       child: Row(
         children: [
           Expanded(
-            child: _StatCard(
+            child: StatCard(
               isDark: isDark,
               icon: Icons.work_outline,
               label: 'Completed',
@@ -477,7 +421,7 @@ final profileData = data['user']['freelancer_profile'];
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: _StatCard(
+            child: StatCard(
               isDark: isDark,
               icon: Icons.schedule,
               label: 'In Progress',
@@ -487,7 +431,7 @@ final profileData = data['user']['freelancer_profile'];
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: _StatCard(
+            child: StatCard(
               isDark: isDark,
               icon: Icons.attach_money,
               label: 'Earnings',
@@ -528,39 +472,39 @@ final profileData = data['user']['freelancer_profile'];
               ),
             ),
           ),
-          _ActionTile(
+          ActionTile(
             isDark: isDark,
             icon: Icons.edit_outlined,
             title: 'Edit Profile',
             subtitle: 'Update your personal information',
             onTap: _navigateToEditProfile,
           ),
-          _Divider(isDark: isDark),
-          _ActionTile(
+          AppDivider(isDark: isDark),
+          ActionTile(
             isDark: isDark,
             icon: Icons.star_outline,
             title: 'Skills',
             subtitle: 'Manage your skills and expertise',
             onTap: _navigateToSkills,
           ),
-          _Divider(isDark: isDark),
-          _ActionTile(
+          AppDivider(isDark: isDark),
+          ActionTile(
             isDark: isDark,
             icon: Icons.work_outline,
             title: 'Portfolio',
             subtitle: 'Showcase your best work',
             onTap: _navigateToPortfolio,
           ),
-          _Divider(isDark: isDark),
-          _ActionTile(
+          AppDivider(isDark: isDark),
+          ActionTile(
             isDark: isDark,
             icon: Icons.done_all_outlined,
             title: 'Completed Jobs',
             subtitle: 'View your work history',
             onTap: _navigateToCompletedJobs,
           ),
-          _Divider(isDark: isDark),
-          _ActionTile(
+          AppDivider(isDark: isDark),
+          ActionTile(
             isDark: isDark,
             icon: Icons.account_balance_wallet_outlined,
             title: 'Earnings',
@@ -600,7 +544,7 @@ final profileData = data['user']['freelancer_profile'];
               ),
             ),
           ),
-          _ActionTile(
+          ActionTile(
             isDark: isDark,
             icon: Icons.dark_mode_outlined,
             title: 'Mode',
@@ -611,27 +555,27 @@ final profileData = data['user']['freelancer_profile'];
               Provider.of<ThemeProvider>(context).themeMode.name[0],
               Provider.of<ThemeProvider>(context).themeMode.name[0].toUpperCase(),
             ),
-            onTap: _switchMode,
+            onTap:() => switchMode(context),
           ),
 
-          _Divider(isDark: isDark),
-          _ActionTile(
+          AppDivider(isDark: isDark),
+          ActionTile(
             isDark: isDark,
             icon: Icons.help_outline,
             title: 'Help & Support',
             subtitle: 'Get help and contact support',
             onTap: _navigateToHelp,
           ),
-          _Divider(isDark: isDark),
-          _ActionTile(
+          AppDivider(isDark: isDark),
+          ActionTile(
             isDark: isDark,
             icon: Icons.info_outline,
             title: 'About',
             subtitle: 'App version and information',
             onTap: _showAbout,
           ),
-          _Divider(isDark: isDark),
-          _ActionTile(
+          AppDivider(isDark: isDark),
+          ActionTile(
             isDark: isDark,
             icon: Icons.logout,
             title: 'Logout',
@@ -645,139 +589,3 @@ final profileData = data['user']['freelancer_profile'];
   }
 }
 
-// ==========================================
-// REUSABLE WIDGETS
-// ==========================================
-
-class _StatCard extends StatelessWidget {
-  final bool isDark;
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.isDark,
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  final bool isDark;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final Color? iconColor;
-
-  const _ActionTile({
-    required this.isDark,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: (iconColor ?? Colors.blue).withAlpha(26),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(
-          icon,
-          color: iconColor ?? Colors.blue,
-          size: 24,
-        ),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: iconColor ?? (isDark ? Colors.white : Colors.black87),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 13,
-          color: Colors.grey.shade600,
-        ),
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: Colors.grey.shade400,
-      ),
-      onTap: onTap,
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  final bool isDark;
-
-  const _Divider({required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(
-        height: 1,
-        color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-      ),
-    );
-  }
-}
