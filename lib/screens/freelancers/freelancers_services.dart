@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/service_model.dart';
+import 'package:free_dz/screens/freelancers/service_details.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'create_service.dart';
 
@@ -34,6 +35,8 @@ class _FreelancerServicesPageState extends State<FreelancerServicesPage> {
 
     try {
       final data = await ApiHelper.get('/freelancer/services');
+      debugPrint('SERVICES RESPONSE: $data');
+
       
       final List<dynamic> servicesJson = data is List ? data : data['services'];
       _services = servicesJson.map((json) => Service.fromJson(json)).toList();
@@ -143,14 +146,13 @@ class _FreelancerServicesPageState extends State<FreelancerServicesPage> {
     debugPrint('Navigate to service details: ${service.id}');
     
     // TODO: Navigate to service details/edit page
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => ServiceDetailsPage(service: service),
-    //   ),
-    // ).then((_) => _loadServices()); // Refresh on return
+    Navigator.push(
+       context,
+       MaterialPageRoute(
+         builder: (context) => ServiceDetailsPage(service: service),
+       ),
+     ).then((_) => _loadServices()); // Refresh on return
     
-    _showSnackBar('Service details page coming soon');
   }
 
   void _createNewService() {

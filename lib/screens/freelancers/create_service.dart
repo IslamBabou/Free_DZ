@@ -53,10 +53,11 @@ class _CreateServicePageState extends State<CreateServicePage> {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
-        'price': '${_priceController.text.trim()} DZD',
+        'price': int.parse(_priceController.text.trim()),
       };
 
-      final response = await ApiHelper.post('/services', serviceData);
+      final response = await ApiHelper.post('/freelancer/services', serviceData);
+
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -65,7 +66,7 @@ class _CreateServicePageState extends State<CreateServicePage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, FreelancerServicesPage()); // Return true to indicate success
+      Navigator.pop(context, true); //  tell previous page to refresh
       }
     } catch (e) {
       if (mounted) {
@@ -250,5 +251,8 @@ class _CreateServicePageState extends State<CreateServicePage> {
         ),
       ),
     );
+    
   }
+  
 }
+
