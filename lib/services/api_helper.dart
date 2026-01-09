@@ -1,9 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:free_dz/services/auth_service.dart';
 
 class ApiHelper {
-  static const String baseUrl = 'https://10.0.0.2/api';
+  static const String baseUrl = 'http://127.0.0.1:8000/api';
 
   // Generic GET
   static Future<dynamic> get(String endpoint) async {
@@ -67,6 +68,11 @@ class ApiHelper {
 
   static dynamic _processResponse(http.Response response) {
     if (response.statusCode == 200 || response.statusCode == 201) {
+        print("befor");
+    final test_data= json.decode(response.body);
+    print('Response Data: $test_data');
+    debugPrint("after");
+
       return json.decode(response.body);
     } else if (response.statusCode == 401) {
       AuthService.logout();

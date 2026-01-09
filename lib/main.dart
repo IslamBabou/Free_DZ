@@ -88,7 +88,7 @@ class FreeDzApp extends StatelessWidget {
       ),
       darkTheme: ThemeData.dark(),
       themeMode: themeProvider.themeMode, // <- reactive now
-      initialRoute: '/freelancer_home',
+      initialRoute: '/login',
       routes: {
         '/': (context) => const LoginPage(),
         '/login': (context) => const LoginPage(),
