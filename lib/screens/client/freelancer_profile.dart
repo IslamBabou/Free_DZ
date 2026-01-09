@@ -28,7 +28,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
   bool _isLoading = true;
   bool _hasError = false;
   String? _errorMessage;
-  FreelancerProfile? _profile;
+  Freelancer? _profile;
 
   bool _isSaved = false;
   bool _isSaving = false;
@@ -63,7 +63,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
         if (!mounted) return;
 
         setState(() {
-          _profile = FreelancerProfile.fromJson(data);
+          _profile = Freelancer.fromJson(data);
           _isSaved = data['is_saved'] ?? data['isSaved'] ?? false;
           _isLoading = false;
         });
@@ -253,67 +253,43 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
       color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       child: Column(
         children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 55,
-                backgroundImage: _profile!.avatarUrl != null
-                    ? NetworkImage(_profile!.avatarUrl!)
-                    : null,
-                child: _profile!.avatarUrl == null
-                    ? Text(
-                        _profile!.fullName[0].toUpperCase(),
-                        style: const TextStyle(fontSize: 32),
-                      )
-                    : null,
-              ),
-              if (_profile!.isOnline)
-                Positioned(
-                  bottom: 4,
-                  right: 4,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          CircleAvatar(
+            radius: 55,
+            backgroundImage: _profile!.avatarUrl != null
+                ? NetworkImage(_profile!.avatarUrl!)
+                : null,
+            child: _profile!.avatarUrl == null && _profile!.fullName != null
+                ? Text(
+                    _profile!.fullName![0].toUpperCase(),
+                    style: const TextStyle(fontSize: 32),
+                  )
+                : null,
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _profile!.fullName,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black,
-                ),
-              ),
-              if (_profile!.isVerified) ...[
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.verified,
-                  size: 20,
-                  color: Colors.blue.shade400,
-                ),
-              ],
-            ],
-          ),
           Text(
-            _profile!.professionalTitle,
-            style: TextStyle(color: Colors.grey.shade600),
+            _profile!.fullName ?? 'Unknown',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black,
+            ),
           ),
-          const SizedBox(height: 6),
-          Text(_profile!.location),
+          if (_profile!.professionalTitle != null)
+            Text(
+              _profile!.professionalTitle!,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          if (_profile!.location != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(_profile!.location!),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -326,9 +302,12 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _stat('${_profile!.rating}', 'Rating'),
-          _stat('${_profile!.completedJobs}', 'Jobs'),
-          _stat(_profile!.responseTime, 'Response'),
+          if (_profile!.hourlyRate != null)
+            _stat('${_profile!.hourlyRate} DA/hr', 'Hourly Rate'),
+          if (_profile!.yearsOfExperience != null)
+            _stat('${_profile!.yearsOfExperience} years', 'Experience'),
+          if (_profile!.responseTime != null)
+            _stat(_profile!.responseTime!, 'Response'),
         ],
       ),
     );
@@ -361,35 +340,53 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        Text(_profile!.bio),
-        const SizedBox(height: 16),
-        ...[
-        Text(
-          'Experience: ${_profile!.yearsOfExperience} years',
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 16),
-      ],
-        if (_profile!.languages.isNotEmpty) ...[
+        if (_profile!.bio != null) ...[
           const Text(
-            'Languages',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            'Bio',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           const SizedBox(height: 8),
-          Text(_profile!.languages.join(', ')),
+          Text(_profile!.bio!),
           const SizedBox(height: 16),
         ],
-        if (_profile!.skills.isNotEmpty) ...[
+        if (_profile!.yearsOfExperience != null) ...[
+          Text(
+            'Experience: ${_profile!.yearsOfExperience} years',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (_profile!.hourlyRate != null) ...[
+          Text(
+            'Hourly Rate: ${_profile!.hourlyRate} DA',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (_profile!.languages != null && _profile!.languages!.isNotEmpty) ...[
+          const Text(
+            'Languages',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(_profile!.languages!.join(', ')),
+          const SizedBox(height: 16),
+        ],
+        if (_profile!.skills != null && _profile!.skills!.isNotEmpty) ...[
           const Text(
             'Skills',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _profile!.skills
-                .map((s) => Chip(label: Text(s.name)))
+            children: _profile!.skills!
+                .map((s) => Chip(
+                      label: Text(s),
+                      backgroundColor: Colors.blue.withOpacity(0.1),
+                      side: BorderSide(color: Colors.blue.withOpacity(0.3)),
+                    ))
                 .toList(),
           ),
         ],
@@ -398,7 +395,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
   }
 
   Widget _buildServicesTab(bool isDark) {
-    if (_profile!.services.isEmpty) {
+    if (_profile!.services == null || _profile!.services!.isEmpty) {
       return const Center(
         child: Text('No services available'),
       );
@@ -406,57 +403,32 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
 
     return ListView.separated(
       padding: const EdgeInsets.all(20),
-      itemCount: _profile!.services.length,
-      separatorBuilder: (_, _) => const Divider(height: 24),
+      itemCount: _profile!.services!.length,
+      separatorBuilder: (_, __) => const Divider(height: 24),
       itemBuilder: (context, index) {
-        final service = _profile!.services[index];
-        return ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-            service.title,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+        final service = _profile!.services![index];
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+            ),
           ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 4),
-              Text(service.description),
-              const SizedBox(height: 8),
-              Text(
-                'Delivery: ${service.deliveryDays} days',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${service.priceFrom} DA${' - ${service.priceTo} DA'}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              ...[
-              const SizedBox(height: 4),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.star, size: 14, color: Colors.amber),
-                  const SizedBox(width: 2),
-                  Text(
-                    '${service.rating}',
-                    style: const TextStyle(fontSize: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  service,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
-                ],
-              ),
-            ],
-            ],
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -464,7 +436,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
   }
 
   Widget _buildReviewsTab(bool isDark) {
-    if (_profile!.reviews.isEmpty) {
+    if (_profile!.reviews == null || _profile!.reviews!.isEmpty) {
       return const Center(
         child: Text('No reviews yet'),
       );
@@ -472,74 +444,25 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
 
     return ListView.separated(
       padding: const EdgeInsets.all(20),
-      itemCount: _profile!.reviews.length,
-      separatorBuilder: (_, _) => const Divider(height: 24),
+      itemCount: _profile!.reviews!.length,
+      separatorBuilder: (_, __) => const Divider(height: 24),
       itemBuilder: (context, index) {
-        final review = _profile!.reviews[index];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    review.clientName,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(
-                    5,
-                    (i) => Icon(
-                      i < review.rating ? Icons.star : Icons.star_border,
-                      size: 16,
-                      color: Colors.amber,
-                    ),
-                  ),
-                ),
-              ],
+        final review = _profile!.reviews![index];
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
             ),
-            const SizedBox(height: 4),
-            if (review.serviceName != null)
-              Text(
-                review.serviceName!,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            const SizedBox(height: 8),
-            Text(review.comment),
-            const SizedBox(height: 4),
-            Text(
-              _formatDate(review.createdAt),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
-            ),
-          ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(review),
+          ),
         );
       },
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Today';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inDays < 30) {
-      return '${(difference.inDays / 7).floor()} weeks ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 
   Widget _buildBottomActions(bool isDark) {
@@ -553,11 +476,17 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
               child: OutlinedButton.icon(
                 icon: const Icon(Icons.chat),
                 label: const Text('Message'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: () {
                   final freelancerInfo = FreelancerInfo(
                     id: _profile!.id,
-                    isOnline: _profile!.isOnline,
-                    name: _profile!.fullName,
+                    isOnline: false, // Since model doesn't have isOnline
+                    name: _profile!.fullName ?? 'Freelancer',
                     avatarUrl: _profile!.avatarUrl,
                   );
 
@@ -583,6 +512,12 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.work),
                 label: const Text('View Services'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 onPressed: () {
                   // Switch to services tab
                   _tabController.animateTo(1);

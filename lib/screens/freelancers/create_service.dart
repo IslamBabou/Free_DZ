@@ -56,7 +56,8 @@ class _CreateServicePageState extends State<CreateServicePage> {
         'price': int.parse(_priceController.text.trim()),
       };
 
-      await ApiHelper.post('/freelancer/services', serviceData);
+      final response = await ApiHelper.post('/freelancer/services', serviceData);
+
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -65,7 +66,7 @@ class _CreateServicePageState extends State<CreateServicePage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, FreelancerServicesPage()); // Return true to indicate success
+      Navigator.pop(context, true); //  tell previous page to refresh
       }
     } catch (e) {
       if (mounted) {
@@ -250,5 +251,8 @@ class _CreateServicePageState extends State<CreateServicePage> {
         ),
       ),
     );
+    
   }
+  
 }
+

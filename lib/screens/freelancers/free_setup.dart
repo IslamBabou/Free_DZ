@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:free_dz/screens/freelancers/free_home.dart';
+import 'package:free_dz/screens/freelancers/free_main.dart';
 import 'package:free_dz/services/api_helper.dart';
 
 // ==========================================
@@ -162,7 +162,7 @@ class _FreelancerProfileSetupPageState extends State<FreelancerProfileSetupPage>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => FreelancerHomePage(
+        builder: (context) => FreelancerMainScreen(
           showCompletionBanner: !isComplete,
         ),
       ),

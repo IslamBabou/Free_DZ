@@ -145,7 +145,6 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
         ],
       ),
       extendBody: true,
-      bottomNavigationBar: _buildAnimatedBottomBar(isDark),
     );
   }
 
@@ -742,77 +741,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     );
   }
 
-  Widget _buildAnimatedBottomBar(bool isDark) {
-    return AnimatedNotchBottomBar(
-      notchBottomBarController: _bottomBarController,
-      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-      showLabel: true,
-      textOverflow: TextOverflow.visible,
-      maxLine: 1,
-      shadowElevation: 5,
-      kBottomRadius: 28.0,
-      notchColor: Colors.blue,
-      removeMargins: false,
-      bottomBarWidth: 500,
-      showShadow: true,
-      durationInMilliSeconds: 300,
-      itemLabelStyle: TextStyle(
-        fontSize: 10,
-        color: isDark ? Colors.white : Colors.black87,
-      ),
-      elevation: 1,
-      bottomBarItems: [
-        BottomBarItem(
-          inActiveItem: Icon(
-            Icons.home_outlined,
-            color: isDark ? Colors.white70 : Colors.grey.shade600,
-          ),
-          activeItem: const Icon(
-            Icons.home,
-            color: Colors.white,
-          ),
-          itemLabel: 'Home',
-        ),
-        BottomBarItem(
-          inActiveItem: Icon(
-            Icons.work_outline,
-            color: isDark ? Colors.white70 : Colors.grey.shade600,
-          ),
-          activeItem: const Icon(
-            Icons.work,
-            color: Colors.white,
-          ),
-          itemLabel: 'Jobs',
-        ),
-        BottomBarItem(
-          inActiveItem: Icon(
-            Icons.chat_bubble_outline,
-            color: isDark ? Colors.white70 : Colors.grey.shade600,
-          ),
-          activeItem: const Icon(
-            Icons.chat_bubble,
-            color: Colors.white,
-          ),
-          itemLabel: 'Messages',
-        ),
-        BottomBarItem(
-          inActiveItem: Icon(
-            Icons.person_outline,
-            color: isDark ? Colors.white70 : Colors.grey.shade600,
-          ),
-          activeItem: const Icon(
-            Icons.person,
-            color: Colors.white,
-          ),
-          itemLabel: 'Profile',
-        ),
-      ],
-      onTap: (index) {
-        _pageController.jumpToPage(index);
-      },
-      kIconSize: 24.0,
-    );
-  }
+  
 
   String _formatJobTime(DateTime time) {
     final difference = DateTime.now().difference(time);
