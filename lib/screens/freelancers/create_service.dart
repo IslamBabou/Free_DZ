@@ -53,10 +53,10 @@ class _CreateServicePageState extends State<CreateServicePage> {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _selectedCategory,
-        'price': '${_priceController.text.trim()} DZD',
+        'price': int.parse(_priceController.text.trim()),
       };
 
-      final response = await ApiHelper.post('/services', serviceData);
+      await ApiHelper.post('/freelancer/services', serviceData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

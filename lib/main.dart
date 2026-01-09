@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
 import 'package:free_dz/screens/freelancers/free_main.dart';
+import 'package:free_dz/screens/freelancers/freelancers_services.dart';
 import 'package:free_dz/services/theme_provider.dart';
 import 'screens/shared/login_page.dart';
 import 'screens/shared/register_page.dart';
@@ -16,7 +17,7 @@ void main() async {
 
    runApp(
     ChangeNotifierProvider.value(
-      value: themeProvider, // use the already initialized instance
+      value: themeProvider, 
       child: const FreeDzApp(),
     ),
   );
@@ -90,7 +91,7 @@ class FreeDzApp extends StatelessWidget {
       themeMode: themeProvider.themeMode, // <- reactive now
       initialRoute: '/login',
       routes: {
-        '/': (context) => const LoginPage(),
+        '/': (context) => const FreelancerServicesPage(),
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
         '/client_home': (context) => const ClientMainScreen(),
@@ -105,9 +106,8 @@ class FreeDzApp extends StatelessWidget {
           );
         }
         if (settings.name == '/freelancer_setup') {
-          final freelancerId = settings.arguments as String;
           return MaterialPageRoute(
-            builder: (_) => FreelancerProfileSetupPage(freelancerId: freelancerId),
+            builder: (_) => FreelancerProfileSetupPage(),
           );
         }
         return null;

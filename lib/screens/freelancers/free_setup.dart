@@ -8,12 +8,10 @@ import 'package:free_dz/services/api_helper.dart';
 // ==========================================
 
 class FreelancerProfileSetupPage extends StatefulWidget {
-  final String freelancerId;
   final bool isFromSkip;
 
   const FreelancerProfileSetupPage({
     super.key,
-    required this.freelancerId,
     this.isFromSkip = false,
   });
 
@@ -81,22 +79,31 @@ class _FreelancerProfileSetupPageState extends State<FreelancerProfileSetupPage>
     try {
       // Prepare data
       final profileData = {
-        'professionalTitle': _titleController.text.trim(),
+        'professional_title': _titleController.text.trim(),
         'skills': _skillsController.text
             .split(',')
             .map((s) => s.trim())
             .where((s) => s.isNotEmpty)
             .toList(),
-        'city': _cityController.text.trim(),
+        'location': _cityController.text.trim(),
         'bio': _bioController.text.trim(),
         'hourlyRate': _hourlyRateController.text.isNotEmpty 
             ? double.parse(_hourlyRateController.text) 
             : null,
-        'isProfileComplete': true,
       };
 
       // API call using ApiHelper
-      await ApiHelper.put('/freelancer/profile', profileData);
+       final response = await ApiHelper.put('/freelancer/profile', profileData);
+      debugPrint('Profile update response: $response');
+      if (response["status"] == true) {
+        _navigateToHome(isComplete: true);
+      } else {
+        throw Exception('Failed to save profile');
+      }
+      
+
+      // TEMPORARY: Mock API call
+      await Future.delayed(const Duration(seconds: 2));
       
       if (mounted) {
         _navigateToHome(isComplete: true);

@@ -28,14 +28,14 @@ class ClientProfile {
   factory ClientProfile.fromJson(Map<String, dynamic> json) {
     return ClientProfile(
       id: json['id'].toString(),
-      email: json['email'],
-      fullName: json['fullName'] ?? json['name'] ?? '',
-      phoneNumber: json['phoneNumber'] ?? json['phone'],
-      location: json['location'],
-      avatarUrl: json['avatarUrl'] ?? json['avatar'],
-      isVerified: json['isVerified'] ?? false,
-      role: json['role'] ?? 'CLIENT',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      email: json['email']??"",
+      fullName: json['full_name'] ?? json['name'] ?? '',
+      phoneNumber: json['phone_number'] ?? json['phone']??'',
+      location: json['location']??'',
+      avatarUrl: json['avatar_url'] ?? json['avatar']?? '',
+      isVerified: json['is_verified'] ?? false,
+      role: json['role'] ?? 'client',
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
     );
   }
 

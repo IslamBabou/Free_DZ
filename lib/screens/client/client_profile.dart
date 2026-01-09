@@ -1,8 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_profile.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
+import 'package:free_dz/services/theme_provider.dart';
+import 'package:free_dz/widgets/reusable_widgets.dart';
+import 'package:provider/provider.dart';
 
 // ==========================================
 // CLIENT PROFILE PAGE
@@ -34,7 +36,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
   final String _selectedLanguage = 'English';
   bool _pushNotifications = true;
   bool _emailNotifications = true;
-  final ThemeMode _themeMode = ThemeMode.system;
 
   @override
   void initState() {
@@ -50,6 +51,9 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     super.dispose();
   }
 
+  /// =================================
+  /// Load profile using ApiHelper
+  /// =================================
   Future<void> _loadProfile() async {
     setState(() {
       _isLoading = true;
@@ -57,24 +61,26 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     });
 
     try {
-      final response = await ApiHelper.get('/client/profile');
+      final data = await ApiHelper.get('/client/profile'); // returns decoded Map
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _profile = ClientProfile.fromJson(data);
-        
+      if (data['status'] == 200 && data['profile'] != null) {
+        final profileJson = data['profile'];
+
+        debugPrint('Profile JSON: $profileJson');
+        _profile = ClientProfile.fromJson(profileJson);
+
         // Populate controllers
         _fullNameController.text = _profile!.fullName;
         _phoneController.text = _profile!.phoneNumber ?? '';
         _locationController.text = _profile!.location ?? '';
-        
+
         if (!mounted) return;
         setState(() => _isLoading = false);
-      } else if (response.statusCode == 401) {
+      } else if (data['status'] == 401) {
         await AuthService.logout();
         if (!mounted) return;
         _redirectToLogin();
-      } else if (response.statusCode == 403) {
+      } else if (data['status'] == 403) {
         if (!mounted) return;
         _redirectToRoleDashboard();
       } else {
@@ -90,6 +96,9 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     }
   }
 
+  /// =================================
+  /// Update profile
+  /// =================================
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -101,25 +110,24 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      final response = await ApiHelper.post(
-        '/client/profile',
-        {
-          'full_name': _fullNameController.text.trim(),
-          'phone_number': _phoneController.text.trim(),
-          'location': _locationController.text.trim(),
-        },
-      );
+      // Prepare data to update
+      final body = {
+        "full_name": _fullNameController.text.trim(),
+        "phone_number": _phoneController.text.trim(),
+        "location": _locationController.text.trim(),
+      };
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _profile = ClientProfile.fromJson(data);
+      final data = await ApiHelper.post('/client/profile/update', body);
+
+      if (data['status'] == 200 && data['profile'] != null) {
+        _profile = ClientProfile.fromJson(data['profile']);
 
         if (mounted) {
           Navigator.pop(context); // Close loading
           setState(() => _isEditing = false);
           _showSnackBar('Profile updated successfully', isError: false);
         }
-      } else if (response.statusCode == 401) {
+      } else if (data['status'] == 401) {
         await AuthService.logout();
         if (mounted) {
           Navigator.pop(context);
@@ -136,6 +144,29 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
     }
   }
 
+  /// =================================
+  /// Delete account
+  /// =================================
+  Future<void> _deleteAccount() async {
+    try {
+      final data = await ApiHelper.post('/client/profile/delete', {});
+
+      if (data['status'] == 200) {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      } else {
+        throw Exception('Failed to delete account');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Failed to delete account', isError: true);
+    }
+  }
+
+  /// =================================
+  /// Helpers
+  /// =================================
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -163,10 +194,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -176,9 +204,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       ),
     );
 
-    if (confirmed == true) {
-      await _logout();
-    }
+    if (confirmed == true) await _logout();
   }
 
   Future<void> _logout() async {
@@ -192,14 +218,9 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone.',
-        ),
+        content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -215,14 +236,9 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Final Confirmation'),
-        content: const Text(
-          'This is your last chance. Deleting your account will remove all your data permanently. Are you absolutely sure?',
-        ),
+        content: const Text('This is your last chance. Deleting your account will remove all your data permanently. Are you absolutely sure?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -232,26 +248,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       ),
     );
 
-    if (secondConfirm == true) {
-      await _deleteAccount();
-    }
-  }
-
-  Future<void> _deleteAccount() async {
-    try {
-      final response = await ApiHelper.post('/client/profile/delete', {});
-      
-      if (response.statusCode == 200) {
-        await AuthService.logout();
-        if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      } else {
-        throw Exception('Failed to delete account');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar('Failed to delete account', isError: true);
-    }
+    if (secondConfirm == true) await _deleteAccount();
   }
 
   @override
@@ -265,9 +262,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
   }
 
   Widget _buildBody(bool isDark) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
 
     if (_hasError || _profile == null) {
       return Center(
@@ -594,13 +589,18 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
             },
           ),
           const Divider(),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.palette_outlined),
-            title: const Text('Theme'),
-            subtitle: Text(_themeMode == ThemeMode.system ? 'System' : _themeMode == ThemeMode.dark ? 'Dark' : 'Light'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
+          ActionTile(
+            isDark: isDark,
+            icon: Icons.palette_outlined,
+            title: 'Mode',
+            subtitle: Provider.of<ThemeProvider>(context)
+            .themeMode
+            .name
+            .replaceFirst(
+              Provider.of<ThemeProvider>(context).themeMode.name[0],
+              Provider.of<ThemeProvider>(context).themeMode.name[0].toUpperCase(),
+            ),
+            onTap:() => switchMode(context),
           ),
         ],
       ),
@@ -709,4 +709,6 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
       ),
     );
   }
-}
+  }
+
+ 
