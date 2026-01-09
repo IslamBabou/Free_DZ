@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:free_dz/screens/client/Services/client_services.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
 import 'package:free_dz/screens/freelancers/free_main.dart';
+import 'package:free_dz/screens/freelancers/freelancers_services.dart';
 import 'package:free_dz/services/theme_provider.dart';
 import 'screens/shared/login_page.dart';
 import 'screens/shared/register_page.dart';
@@ -91,7 +92,9 @@ class FreeDzApp extends StatelessWidget {
       themeMode: themeProvider.themeMode, // <- reactive now
       initialRoute: '/login',
       routes: {
-        '/': (context) => const ClientServicePage(),
+
+        '/': (context) => const FreelancerServicesPage(),
+         
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
         '/client_home': (context) => const ClientMainScreen(),

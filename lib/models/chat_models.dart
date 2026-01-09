@@ -435,7 +435,7 @@ class ConversationMetadata {
   ConversationMetadata copyWith({
     String? conversationId,
     bool? isMuted,
-    bool? isArchived,
+    bool? isArchived, 
     bool? isBlocked,
     DateTime? mutedUntil,
     List<String>? pinnedMessages,

@@ -22,11 +22,11 @@ class _JobsPageState extends State<JobsPage> {
   List<Job> _filteredJobs = [];
   final _searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
+ @override
+void initState() {
+  super.initState();
     _loadJobs();
-  }
+}
 
   @override
   void dispose() {
@@ -35,6 +35,9 @@ class _JobsPageState extends State<JobsPage> {
   }
 
   Future<void> _loadJobs() async {
+
+    debugPrint('Loading jobs from API...');
+
     setState(() {
       _isLoading = true;
       _hasError = false;
@@ -42,10 +45,9 @@ class _JobsPageState extends State<JobsPage> {
 
     try {
       // API call using ApiHelper
-      final data = await ApiHelper.get('/jobs');
-      
+      final data = await ApiHelper.get('/projects');      
       setState(() {
-        _jobs = (data['jobs'] as List?)
+        _jobs = (data['project'] as List?)
             ?.map((job) => Job.fromJson(job))
             .toList() ?? [];
         _filteredJobs = _jobs;

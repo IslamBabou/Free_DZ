@@ -57,10 +57,10 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
 
     try {
       // API call using ApiHelper
-      final data = await ApiHelper.get('/projects');
+      final data = await ApiHelper.get('/freelancer/profile');
       
       setState(() {
-        _completedJobs = data['completedJobs'] ?? 0;
+        _completedJobs = data['completed_jobs'] ?? 0;
         _unreadNotifications = data['unreadNotifications'] ?? 0;
         _availableJobs = (data['availableJobs'] as List?)
             ?.map((job) => Job.fromJson(job))
@@ -70,7 +70,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     } catch (e) {
       debugPrint('Error loading dashboard: $e');
       setState(() {
-        _hasError = true;
+        // _hasError = true;
         _isLoading = false;
       });
       }
