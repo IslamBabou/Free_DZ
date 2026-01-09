@@ -49,11 +49,11 @@ class _CreateJobPageState extends State<CreateJobPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      await ApiHelper.post('/client/jobs', {
+      await ApiHelper.post('/projects', {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'budgetRange': '${_budgetController.text.trim()} DA',
-        'category': _selectedCategory,
+        'budget': double.parse(_budgetController.text.trim()),
+        'category_badge': _selectedCategory,
         'location': _locationController.text.trim(),
       });
 

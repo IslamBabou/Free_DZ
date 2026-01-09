@@ -77,7 +77,7 @@ class _ChatPageState extends State<ChatPage> {
     }
 
     try {
-      final data = await ApiHelper.get('/client/conversations/${widget.conversationId}/messages');
+      final data = await ApiHelper.get('/conversations/${widget.conversationId}/messages');
       
       final List<dynamic> messagesJson = data['messages'];
       _messages = messagesJson.map((json) => ChatMessage.fromJson(json)).toList();
@@ -151,7 +151,7 @@ class _ChatPageState extends State<ChatPage> {
 
     try {
       final data = await ApiHelper.post(
-        '/client/conversations/${widget.conversationId}/messages',
+        '/conversations/${widget.conversationId}/messages',
         {
           'content': sanitizedContent,
           'type': 'text',

@@ -41,7 +41,7 @@ class _ChatListPageState extends State<ChatListPage> {
     });
 
     try {
-      final data = await ApiHelper.get('/client/conversations');
+      final data = await ApiHelper.get('/conversations');
       
       final List<dynamic> conversationsJson = data is List ? data : data['conversations'];
       _conversations = conversationsJson.map((json) => Conversation.fromJson(json)).toList();
