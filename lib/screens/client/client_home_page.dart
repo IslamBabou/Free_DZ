@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:free_dz/models/client_home_page.dart';
+import 'package:free_dz/models/client_home_page.dart' hide Service;
 import 'package:free_dz/models/service_model.dart';
 import 'package:free_dz/screens/client/jobs/freelancers.dart';
 import 'package:free_dz/screens/client/jobs/my_jobs.dart';
