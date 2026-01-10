@@ -42,11 +42,16 @@ class Job {
 // ==========================================
 // Extends the base Job model with client-specific fields
 
+// ==========================================
+// CLIENT JOB MODEL
+// ==========================================
+
 enum JobStatus {
   open,
   closed,
   draft;
 
+  // Convert backend string to enum
   static JobStatus fromString(String value) {
     switch (value.toLowerCase()) {
       case 'open':
@@ -60,6 +65,7 @@ enum JobStatus {
     }
   }
 
+  // Friendly display
   String get displayName {
     switch (this) {
       case JobStatus.open:
@@ -81,8 +87,6 @@ class ClientJob {
   final String location;
   final DateTime postedDate;
   final int proposalsCount;
-  
-  // Client-specific fields
   final JobStatus status;
 
   ClientJob({
@@ -97,34 +101,50 @@ class ClientJob {
     required this.status,
   });
 
+  // JSON -> ClientJob
   factory ClientJob.fromJson(Map<String, dynamic> json) {
-    return ClientJob(
-      id: json['id'].toString(),
-      title: json['title'] ?? '',
-      description: json['description'] ?? '',
-      budget: json['budget'] ?? 0,
-      category: json['category'] ?? 'General',
-      location: json['location'] ?? 'Remote',
-      postedDate: DateTime.parse(json['postedDate'] ?? DateTime.now().toIso8601String()),
-      proposalsCount: json['proposalsCount'] ?? 0,
-      status: JobStatus.fromString(json['status'] as String? ?? 'draft'),
-    );
+  // Safe budget parsing
+  int budgetValue;
+  final budgetRaw = json['budget'];
+  if (budgetRaw is String) {
+    budgetValue = double.parse(budgetRaw).toInt();
+  } else if (budgetRaw is num) {
+    budgetValue = budgetRaw.toInt();
+  } else {
+    budgetValue = 0;
   }
 
+  return ClientJob(
+    id: json['id'].toString(),
+    title: json['title'] ?? '',
+    description: json['description'] ?? '',
+    budget: budgetValue,
+    category: json['category_badge'] ?? 'General',
+    location: json['location'] ?? 'Remote',
+    postedDate: DateTime.parse(json['posted_at'] ?? DateTime.now().toIso8601String()),
+    proposalsCount: json['proposals_count'] ?? 0,
+    status: JobStatus.fromString(json['status'] ?? 'draft'),
+  );
+}
+
+
+
+  // ClientJob -> JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'title': title,
       'description': description,
       'budget': budget,
-      'category': category,
+      'category_badge': category,
       'location': location,
-      'postedDate': postedDate.toIso8601String(),
-      'proposalsCount': proposalsCount,
+      'posted_at': postedDate.toIso8601String(),
+      'proposals_count': proposalsCount,
       'status': status.name,
     };
   }
 
+  // Copy method (optional, useful for updates)
   ClientJob copyWith({
     String? id,
     String? title,
@@ -141,7 +161,7 @@ class ClientJob {
       title: title ?? this.title,
       description: description ?? this.description,
       budget: budget ?? this.budget,
-        category: category ?? this.category,
+      category: category ?? this.category,
       location: location ?? this.location,
       postedDate: postedDate ?? this.postedDate,
       proposalsCount: proposalsCount ?? this.proposalsCount,

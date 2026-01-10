@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:free_dz/services/auth_service.dart';
 
 class ApiHelper {
-  static const String baseUrl = 'http://192.168.5.40:8000/api';
+  static const String baseUrl = 'http://127.0.0.1:8000/api';
 
 
   // Generic GET
@@ -31,7 +31,6 @@ class ApiHelper {
       final response = await http.post(url,
           headers: await _getHeaders(), body: json.encode(body));
 
-    debugPrint("Response body: ${response.body}");
 
       return _processResponse(response);
     } catch (e) {
@@ -69,19 +68,18 @@ class ApiHelper {
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getToken(); // get auth token if exists
     return {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json; charset=UTF-8',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
   static dynamic _processResponse(http.Response response) {
-    if (response.statusCode == 200 || response.statusCode == 201) {
-        print("befor");
-    final test_data= json.decode(response.body);
-    print('Response Data: $test_data');
-    debugPrint("after");
+  final decoded = json.decode(response.body);
 
-      return json.decode(response.body);
+  if (response.statusCode == 200 || response.statusCode == 201) {
+    debugPrint('Response Data: $decoded');
+    return decoded;
+  
     } else if (response.statusCode == 401) {
       AuthService.logout();
       throw Exception('Unauthorized');
