@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_home_page.dart';
-import 'package:free_dz/screens/client/create_job.dart';
+import 'package:free_dz/screens/client/jobs/my_jobs.dart';
 import '../../services/auth_service.dart';
 import "client_profile.dart";
 import 'package:free_dz/services/api_helper.dart';
@@ -577,7 +577,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
     const ClientHomePage(),
     const ChatListPage(),
     const SavedFreelancersPage(),
-    const CreateJobPage(),
+    const MyJobsPage(),
     const ClientProfilePage(),
   ];
 
@@ -652,7 +652,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
               Icons.work_history,
               color: Colors.white,
             ),
-            itemLabel: 'Jobs',
+            itemLabel: 'MY Jobs',
           ),
           BottomBarItem(
             inActiveItem: Icon(
