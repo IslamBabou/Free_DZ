@@ -28,10 +28,9 @@ class _ClientServicePageState extends State<ClientServicePage> {
     });
 
     try {
-      final data = await ApiHelper.get('/services'); // public endpoint returning all active services
+      final data = await ApiHelper.get('/freelancer/services/all'); // public endpoint returning all active services
       final List<dynamic> servicesJson = data is List ? data : data['services'];
       _services = servicesJson.map((json) => Service.fromJson(json)).toList();
-      _services.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading services: $e');
@@ -71,7 +70,7 @@ class _ClientServicePageState extends State<ClientServicePage> {
               onTap: () => _openServiceDetails(service),
               title: Text(service.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(service.category),
-              trailing: Text(service.price),
+              trailing: Text(service.price as String),
             ),
           );
         },

@@ -220,7 +220,7 @@ class _ServiceDetailsPageState extends State<ServiceDetailsPage> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      service.price,
+                                      service.price as String,
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
@@ -323,14 +323,7 @@ class _ServiceDetailsPageState extends State<ServiceDetailsPage> {
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                _formatDate(service.createdAt),
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : Colors.black,
-                                ),
-                              ),
+                              
                             ],
                           ),
                         ],
@@ -395,11 +388,5 @@ class _ServiceDetailsPageState extends State<ServiceDetailsPage> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
+  
 }

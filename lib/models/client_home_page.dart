@@ -32,4 +32,20 @@ class FreelancerCard {
     required this.hourlyRate,
     required this.skills,
   });
+
+  factory FreelancerCard.fromJson(Map<String, dynamic> json) {
+    return FreelancerCard(
+      id: json['id'].toString(),
+      name: json['name'] ?? '',
+      title: json['title'] ?? '',
+      imageUrl: json['image_url'] ?? '',
+      rating: (json['rating'] ?? 0).toDouble(),
+      reviewCount: json['review_count'] ?? 0,
+      hourlyRate: json['hourly_rate'] != null
+          ? '\$${(json['hourly_rate'] as num).toStringAsFixed(2)}/hr'
+          : '\$0.00/hr',
+      skills: List<String>.from(json['skills'] ?? []),
+    );
+  }
+  
 }

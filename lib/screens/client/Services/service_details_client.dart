@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/models/chat_models.dart';
 import 'package:free_dz/models/service_model.dart';
+import 'package:free_dz/screens/shared/message.dart';
+import 'package:free_dz/models/freelancer_profile.dart';
 import 'package:free_dz/services/api_helper.dart';
 
 class ServiceDetailsClientPage extends StatefulWidget {
@@ -8,7 +11,8 @@ class ServiceDetailsClientPage extends StatefulWidget {
   const ServiceDetailsClientPage({super.key, required this.service});
 
   @override
-  State<ServiceDetailsClientPage> createState() => _ServiceDetailsClientPageState();
+  State<ServiceDetailsClientPage> createState() =>
+      _ServiceDetailsClientPageState();
 }
 
 class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
@@ -16,7 +20,6 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
 
   Future<void> _toggleFavorite() async {
     try {
-      // Replace with your actual endpoint for favorites
       if (_isFavorite) {
         await ApiHelper.delete('/favorites/${widget.service.id}');
       } else {
@@ -29,7 +32,8 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_isFavorite ? 'Added to favorites' : 'Removed from favorites'),
+          content: Text(
+              _isFavorite ? 'Added to favorites' : 'Removed from favorites'),
           backgroundColor: Colors.blue,
         ),
       );
@@ -44,22 +48,32 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
   }
 
   void _messageFreelancer() {
-    // TODO: Navigate to chat screen with freelancer
-    
+    final freelancer = widget.service.freelancer;
+    if (freelancer == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatPage(
+          conversationId: 'conv_${freelancer.id}',
+          freelancer: freelancer.toFreelancerInfo(),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final service = widget.service;
     final freelancer = service.freelancer;
+/*     final isDark = Theme.of(context).brightness == Brightness.dark;
+ */
     if (freelancer == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Service Details')),
         body: const Center(child: Text('Freelancer info not available')),
       );
-}
-    
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -76,9 +90,13 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(service.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            // Title
+            Text(service.title,
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
 
+            // Category & Status
             Row(
               children: [
                 _chip(service.category, Colors.blue),
@@ -93,38 +111,44 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
               children: [
                 const Icon(Icons.payments_outlined),
                 const SizedBox(width: 8),
-                Text(service.price, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('${service.price.toStringAsFixed(2)} DA',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 20),
 
             // Description
-            Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+            const Text('Description',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
             const SizedBox(height: 8),
-            Text(service.description, style: const TextStyle(fontSize: 15, height: 1.5)),
+            Text(service.description,
+                style: const TextStyle(fontSize: 15, height: 1.5)),
 
             const SizedBox(height: 24),
-            Divider(),
+            const Divider(),
 
             // Freelancer info
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: CircleAvatar(
                 radius: 25,
-                backgroundImage: (freelancer.avatarUrl != null && freelancer.avatarUrl!.isNotEmpty)
-                ? NetworkImage(freelancer.avatarUrl!)
-                : null,
-              child: (freelancer.avatarUrl == null || freelancer.avatarUrl!.isEmpty)
-                ? const Icon(Icons.person)
-                : null,
+                backgroundImage: (freelancer.avatarUrl != null &&
+                        freelancer.avatarUrl!.isNotEmpty)
+                    ? NetworkImage(freelancer.avatarUrl!)
+                    : null,
+                child: (freelancer.avatarUrl == null ||
+                        freelancer.avatarUrl!.isEmpty)
+                    ? const Icon(Icons.person)
+                    : null,
               ),
               title: Text(
-                freelancer.fullName ?? 'Unnamed Freelancer',
+                freelancer.fullName,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Row(
                 children: [
-                  Icon(Icons.star, color: Colors.amber, size: 16),
+                  const Icon(Icons.star, color: Colors.amber, size: 16),
                   const SizedBox(width: 4),
                   Text(freelancer.rating.toStringAsFixed(1)),
                 ],
@@ -149,7 +173,9 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+      child: Text(text,
+          style:
+              TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
     );
   }
 
@@ -163,5 +189,16 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
         return Colors.orange;
     }
   }
-  
+}
+
+extension FreelancerProfileExtension on FreelancerProfile {
+  /// Converts FreelancerProfile into the lightweight FreelancerInfo for chat
+  FreelancerInfo toFreelancerInfo() {
+    return FreelancerInfo(
+      id: id,
+      name: fullName,
+      avatarUrl: avatarUrl,
+      isOnline: isOnline,
+    );
+  }
 }

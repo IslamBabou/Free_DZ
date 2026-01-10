@@ -1,9 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_home_page.dart';
+import 'package:free_dz/models/service_model.dart';
+import 'package:free_dz/screens/client/jobs/freelancers.dart';
 import 'package:free_dz/screens/client/jobs/my_jobs.dart';
-import '../../services/auth_service.dart';
+import 'package:free_dz/screens/client/services/services.dart';
 import "client_profile.dart";
 import 'package:free_dz/services/api_helper.dart';
 import "../shared/chat_list.dart";
@@ -25,40 +25,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
   bool _isLoading = true;
   bool _hasError = false;
   List<FreelancerCard> _featuredFreelancers = [];
-  final List<CategoryItem> _categories = [
-    CategoryItem(
-      name: 'Design',
-      icon: Icons.palette_outlined,
-      color: Colors.purple,
-    ),
-    CategoryItem(
-      name: 'Development',
-      icon: Icons.code_outlined,
-      color: Colors.blue,
-    ),
-    CategoryItem(
-      name: 'Writing',
-      icon: Icons.edit_outlined,
-      color: Colors.green,
-    ),
-    CategoryItem(
-      name: 'Marketing',
-      icon: Icons.campaign_outlined,
-      color: Colors.orange,
-    ),
-    CategoryItem(
-      name: 'Video',
-      icon: Icons.videocam_outlined,
-      color: Colors.red,
-    ),
-    CategoryItem(
-      name: 'Music',
-      icon: Icons.music_note_outlined,
-      color: Colors.pink,
-    ),
-  ];
-
-
+  List<Service> _featuredServices = [];
+  
+  
 
   @override
   void initState() {
@@ -73,41 +42,40 @@ class _ClientHomePageState extends State<ClientHomePage> {
     });
 
     try {
-      
-      // Fetch freelancers from your API
-      final response = await ApiHelper.get('/client/freelancers');
+      // Load freelancers
+      final freelancersResponse = await ApiHelper.get('/freelancer/all');
+      final List<dynamic> freelancersData = freelancersResponse['data'] ?? [];
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        
-        // Parse the API response into FreelancerCard objects
-        _featuredFreelancers = data.map((json) {
-          return FreelancerCard(
-            id: json['id'].toString(),
-            name: json['name'] ?? 'Unknown',
-            title: json['title'] ?? 'Freelancer',
-            imageUrl: json['imageUrl'] ?? json['avatar'] ?? 'https://i.pravatar.cc/150?img=1',
-            rating: (json['rating'] ?? 4.5).toDouble(),
-            reviewCount: json['reviewCount'] ?? json['reviews'] ?? 0,
-            hourlyRate: json['hourlyRate'] ?? json['rate'] ?? '0 DA',
-            skills: json['skills'] != null 
-                ? List<String>.from(json['skills']) 
-                : [],
-          );
-        }).toList();
-      } else {
-        throw Exception('Failed to load freelancers: ${response.statusCode}');
-      }
-      if (response.statusCode == 401) {
-          await AuthService.logout();
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/login');
-          return;
-      }
-      
+      _featuredFreelancers = freelancersData.map((json) {
+        return FreelancerCard(
+          id: json['id']?.toString() ?? '',
+          name: json['full_name']?.toString().isNotEmpty == true 
+              ? json['full_name'] 
+              : 'Unknown',
+          title: json['professional_title']?.toString().isNotEmpty == true
+              ? json['professional_title']
+              : 'Freelancer',
+          imageUrl: json['avatar_url'] ?? 'https://i.pravatar.cc/150?img=1',
+          rating: (json['rating'] != null ? json['rating'] : 0.0).toDouble(),
+          reviewCount: json['total_reviews'] ?? 0,
+          hourlyRate: (json['hourlyRate']?.toString() ?? '0'),
+          skills: json['skills'] != null ? List<String>.from(json['skills']) : [],
+        );
+      }).toList();
+
+      // Load services
+      final servicesResponse = await ApiHelper.get('/freelancer/services/all');
+      final List<dynamic> servicesData = servicesResponse['data'] ?? [];
+
+      _featuredServices = servicesData.take(10).map((json) {
+        return Service.fromJson(json);
+      }).toList();
+
+      if (!mounted) return;
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading data: $e');
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -165,198 +133,304 @@ class _ClientHomePageState extends State<ClientHomePage> {
       );
     }
 
-    return CustomScrollView(
-      slivers: [
-        // Header with Search
-        SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha:0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Find the perfect freelancer',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildSearchBar(isDark),
-              ],
-            ),
-          ),
-        ),
-
-        // Categories Section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Browse by Category',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _buildCategoriesGrid(isDark),
-              ],
-            ),
-          ),
-        ),
-
-        // Featured Freelancers Section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Featured Freelancers',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to all freelancers
-                      },
-                      child: const Text('See All'),
-                    ),
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: CustomScrollView(
+        slivers: [
+          // Header with App Name
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.blue.shade700,
+                    Colors.blue.shade500,
                   ],
                 ),
-                const SizedBox(height: 12),
-                _buildFeaturedFreelancers(isDark),
-              ],
-            ),
-          ),
-        ),
-
-        // Bottom padding for navigation bar
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 80),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchBar(bool isDark) {
-    return GestureDetector(
-      onTap: () {
-        // Navigate to SearchFreelancers page
-        debugPrint('Navigate to Search');
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.search,
-              color: Colors.grey.shade500,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Search freelancers or services...',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 15,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.work_outline,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Free DZ',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Find the perfect freelancer for your project',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+
+          
+          // Featured Services Section
+          if (_featuredServices.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Featured Services',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AllServicesScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('See All'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeaturedServices(isDark),
+                  ],
+                ),
+              ),
+            ),
+
+          // Featured Freelancers Section
+          if (_featuredFreelancers.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Featured Freelancers',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FreelancersScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('See All'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeaturedFreelancers(isDark),
+                  ],
+                ),
+              ),
+            ),
+
+          // Bottom padding for navigation bar
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 80),
+          ),
+        ],
+      ),
+    );
+  }
+
+  
+
+  
+
+  
+
+  Widget _buildFeaturedServices(bool isDark) {
+    if (_featuredServices.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            children: [
+              Icon(
+                Icons.work_outline,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No services available',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
+      );
+    }
+
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _featuredServices.length,
+        itemBuilder: (context, index) {
+          final service = _featuredServices[index];
+          return _buildServiceCard(service, isDark);
+        },
       ),
     );
   }
 
-  Widget _buildCategoriesGrid(bool isDark) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.1,
-      ),
-      itemCount: _categories.length,
-      itemBuilder: (context, index) {
-        final category = _categories[index];
-        return _buildCategoryCard(category, isDark);
-      },
-    );
-  }
-
-  Widget _buildCategoryCard(CategoryItem category, bool isDark) {
-    return InkWell(
+  Widget _buildServiceCard(Service service, bool isDark) {
+    return GestureDetector(
       onTap: () {
-        debugPrint('Filter by ${category.name}');
-        // Navigate to filtered freelancers
+        debugPrint('View service: ${service.title}');
+        Navigator.pushNamed(
+          context,
+          '/service_details_client',
+          arguments: service,
+        );
       },
-      borderRadius: BorderRadius.circular(12),
       child: Container(
+        width: 280,
+        margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: category.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                category.icon,
-                color: category.color,
-                size: 24,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              category.name,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title
+              Text(
+                service.title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+
+              // Description
+              Text(
+                service.description,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+
+              // Bottom row with category, price, and status
+              Row(
+                children: [
+                  // Category chip
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: Colors.blue.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      service.category,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+
+                  // Price
+                  Text(
+                    '${service.price.toStringAsFixed(2)} ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -404,13 +478,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget _buildFreelancerCard(FreelancerCard freelancer, bool isDark) {
     return GestureDetector(
       onTap: () {
-                  debugPrint('View freelancer: ${freelancer.name}');
-                  Navigator.pushNamed(
-                    context,
-                    '/freelancer_profile',
-                    arguments: freelancer.id,  
-                  );
-                },
+        debugPrint('View freelancer: ${freelancer.name}');
+        Navigator.pushNamed(
+          context,
+          '/freelancer_profile',
+          arguments: freelancer.id,
+        );
+      },
       child: Container(
         width: 200,
         margin: const EdgeInsets.only(right: 16),
@@ -442,39 +516,40 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha:0.6),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          freelancer.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                if (freelancer.rating > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                            size: 14,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            freelancer.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
 
@@ -505,42 +580,44 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.reviews_outlined,
-                        size: 14,
-                        color: Colors.grey.shade500,
+                  if (freelancer.reviewCount > 0)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.reviews_outlined,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${freelancer.reviewCount} reviews',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 8),
+                  if (freelancer.hourlyRate != '0')
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${freelancer.reviewCount} reviews',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${freelancer.hourlyRate} DA/hr',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha:0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${freelancer.hourlyRate}/hr',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -565,7 +642,6 @@ class ClientMainScreen extends StatefulWidget {
 class _ClientMainScreenState extends State<ClientMainScreen> {
   final _pageController = PageController(initialPage: 0);
   final _controller = NotchBottomBarController(index: 0);
-
 
   @override
   void dispose() {
@@ -667,8 +743,7 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
           ),
         ],
         onTap: (index) {
-          setState(() {
-            });
+          setState(() {});
           _pageController.jumpToPage(index);
         },
         kIconSize: 24.0,
@@ -676,7 +751,3 @@ class _ClientMainScreenState extends State<ClientMainScreen> {
     );
   }
 }
-
-
-
-
