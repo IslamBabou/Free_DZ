@@ -39,7 +39,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     });
 
     try {
-      final data = await ApiHelper.get('/jobs/${widget.jobId}');
+      final data = await ApiHelper.get('/projects/${widget.jobId}');
       
       _job = Job.fromJson(data);
       _isSaved = data['isSaved'] ?? false;
@@ -70,7 +70,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
 
     try {
       if (_isSaved) {
-        await ApiHelper.post('/jobs/${widget.jobId}/save', {});
+        await ApiHelper.post('/projects/${widget.jobId}', {});
         _showSnackBar('Job saved successfully');
       } else {
         await ApiHelper.delete('/jobs/${widget.jobId}/save');
@@ -364,7 +364,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
                 child: _buildInfoItem(
                   icon: Icons.payments_outlined,
                   label: 'Budget',
-                  value: _job!.budgetRange,
+                  value: '${_job!.budget} DA',
                   color: Colors.green,
                   isDark: isDark,
                 ),

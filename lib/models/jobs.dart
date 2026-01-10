@@ -6,7 +6,7 @@ class Job {
   final String id;
   final String title;
   final String clientName;
-  final String budgetRange;
+  final int budget; // ✅ INT, not String
   final String category;
   final String description;
   final DateTime postedDate;
@@ -16,7 +16,7 @@ class Job {
     required this.id,
     required this.title,
     required this.clientName,
-    required this.budgetRange,
+    required this.budget,
     required this.category,
     required this.description,
     required this.postedDate,
@@ -26,16 +26,17 @@ class Job {
   factory Job.fromJson(Map<String, dynamic> json) {
     return Job(
       id: json['id'].toString(),
-      title: json['title'] ?? '',
-      clientName: json['clientName'] ?? 'Anonymous',
-      budgetRange: json['budgetRange'] ?? '0 DA',
-      category: json['category'] ?? 'General',
-      description: json['description'] ?? '',
-      postedDate: DateTime.parse(json['postedDate'] ?? DateTime.now().toIso8601String()),
-      proposalsCount: json['proposalsCount'] ?? 0,
+        title: json['title'] ?? '',
+        clientName: json['client_name'] ?? '',
+        budget: (double.parse(json['budget'])).toInt(),
+        category: json['category_badge'] ?? 'General',
+        description: json['description'] ?? '',
+        postedDate: DateTime.parse(json['posted_at'] ?? DateTime.now().toIso8601String()),
+        proposalsCount: json['proposals_count'] ?? 0,
     );
   }
 }
+
 // ==========================================
 // CLIENT JOB MODEL
 // ==========================================
@@ -75,7 +76,7 @@ class ClientJob {
   final String id;
   final String title;
   final String description;
-  final String budgetRange;
+  final int budget;
   final String category;
   final String location;
   final DateTime postedDate;
@@ -88,7 +89,7 @@ class ClientJob {
     required this.id,
     required this.title,
     required this.description,
-    required this.budgetRange,
+    required this.budget,
     required this.category,
     required this.location,
     required this.postedDate,
@@ -101,7 +102,7 @@ class ClientJob {
       id: json['id'].toString(),
       title: json['title'] ?? '',
       description: json['description'] ?? '',
-      budgetRange: json['budgetRange'] ?? '0 DA',
+      budget: json['budget'] ?? 0,
       category: json['category'] ?? 'General',
       location: json['location'] ?? 'Remote',
       postedDate: DateTime.parse(json['postedDate'] ?? DateTime.now().toIso8601String()),
@@ -115,7 +116,7 @@ class ClientJob {
       'id': id,
       'title': title,
       'description': description,
-      'budgetRange': budgetRange,
+      'budget': budget,
       'category': category,
       'location': location,
       'postedDate': postedDate.toIso8601String(),
@@ -128,7 +129,7 @@ class ClientJob {
     String? id,
     String? title,
     String? description,
-    String? budgetRange,
+    int? budget,
     String? category,
     String? location,
     DateTime? postedDate,
@@ -139,8 +140,8 @@ class ClientJob {
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
-      budgetRange: budgetRange ?? this.budgetRange,
-      category: category ?? this.category,
+      budget: budget ?? this.budget,
+        category: category ?? this.category,
       location: location ?? this.location,
       postedDate: postedDate ?? this.postedDate,
       proposalsCount: proposalsCount ?? this.proposalsCount,

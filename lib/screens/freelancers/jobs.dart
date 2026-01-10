@@ -34,37 +34,51 @@ void initState() {
     super.dispose();
   }
 
-  Future<void> _loadJobs() async {
+Future<void> _loadJobs() async {
+  debugPrint('Loading jobs from API...');
 
-    debugPrint('Loading jobs from API...');
+  setState(() {
+    _isLoading = true;
+    _hasError = false;
+  });
 
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-    });
+  try {
+    // API call using ApiHelper
+    final data = await ApiHelper.get('/projects');
+    if (data is List) {
+      // Filter only maps
+      final jobsData = data.whereType<Map<String, dynamic>>().toList();
 
-    try {
-      // API call using ApiHelper
-      final data = await ApiHelper.get('/projects');      
       setState(() {
-        _jobs = (data['project'] as List?)
-            ?.map((job) => Job.fromJson(job))
-            .toList() ?? [];
-        _filteredJobs = _jobs;
+        _jobs = jobsData.map<Job>((e) => Job.fromJson(e)).toList();
+        _filteredJobs = _jobs; // if you are filtering later
         _isLoading = false;
       });
-    } catch (e) {
-      debugPrint('Error loading jobs: $e');
-      
-      // Fallback to mock data
+
+      // Optional: print to debug
+      debugPrint('_jobs loaded: ${_jobs.length}');
+      _jobs.forEach((job) => debugPrint('Job title: ${job.title}'));
+
+    } else {
+      debugPrint('API returned unexpected format: $data');
       setState(() {
-/*         _jobs = _getMockJobs();
- */        _filteredJobs = _jobs;
+        _jobs = [];
+        _filteredJobs = [];
         _isLoading = false;
-        debugPrint('Using mock data due to API error');
       });
     }
+  } catch (e) {
+    debugPrint('Error loading jobs: $e');
+
+    setState(() {
+      _jobs = []; // or _getMockJobs() if you want
+      _filteredJobs = _jobs;
+      _isLoading = false;
+      _hasError = true;
+      debugPrint('Using mock data due to API error');
+    });
   }
+}
 
   /* List<Job> _getMockJobs() {
     return [
@@ -72,7 +86,7 @@ void initState() {
         id: 'JOB001',
         title: 'Mobile App UI/UX Design',
         clientName: 'Ahmed Benali',
-        budgetRange: '30,000 - 50,000 DA',
+        budget: '30,000 - 50,000 DA',
         category: 'Design',
         description: 'Looking for an experienced UI/UX designer to create a modern mobile app design for an e-commerce platform.',
         postedDate: DateTime.now().subtract(const Duration(hours: 2)),
@@ -82,7 +96,7 @@ void initState() {
         id: 'JOB002',
         title: 'Flutter Developer for Delivery App',
         clientName: 'Karim Mansouri',
-        budgetRange: '80,000 - 120,000 DA',
+        budget: '80,000 - 120,000 DA',
         category: 'Development',
         description: 'Need a skilled Flutter developer to build a food delivery application with real-time tracking.',
         postedDate: DateTime.now().subtract(const Duration(hours: 5)),
@@ -92,7 +106,7 @@ void initState() {
         id: 'JOB003',
         title: 'Content Writing for Tech Blog',
         clientName: 'Sarah Boudiaf',
-        budgetRange: '5,000 - 10,000 DA',
+        budget: '5,000 - 10,000 DA',
         category: 'Writing',
         description: 'Looking for a tech writer to create 10 SEO-optimized blog posts about software development.',
         postedDate: DateTime.now().subtract(const Duration(days: 1)),
@@ -102,7 +116,7 @@ void initState() {
         id: 'JOB004',
         title: 'Social Media Marketing Campaign',
         clientName: 'Yacine Belkacem',
-        budgetRange: '25,000 - 40,000 DA',
+        budget: '25,000 - 40,000 DA',
         category: 'Marketing',
         description: 'Need a digital marketer to run a 30-day Instagram and Facebook campaign for a new product launch.',
         postedDate: DateTime.now().subtract(const Duration(days: 1)),
@@ -112,7 +126,7 @@ void initState() {
         id: 'JOB005',
         title: 'Logo Design for Startup',
         clientName: 'Lina Amrani',
-        budgetRange: '8,000 - 15,000 DA',
+        budget: '8,000 - 15,000 DA',
         category: 'Design',
         description: 'Startup company needs a professional logo design with brand guidelines.',
         postedDate: DateTime.now().subtract(const Duration(days: 2)),
@@ -122,7 +136,7 @@ void initState() {
         id: 'JOB006',
         title: 'Video Editing for YouTube Channel',
         clientName: 'Mehdi Ziane',
-        budgetRange: '12,000 - 20,000 DA',
+        budget: '12,000 - 20,000 DA',
         category: 'Video',
         description: 'Looking for a video editor to edit weekly YouTube videos (10-15 minutes each).',
         postedDate: DateTime.now().subtract(const Duration(days: 3)),
@@ -447,7 +461,7 @@ class JobCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      job.budgetRange,
+                      '${job.budget} DA',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

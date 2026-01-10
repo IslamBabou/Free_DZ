@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:free_dz/services/auth_service.dart';
 
 class ApiHelper {
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
+  static const String baseUrl = 'http://192.168.5.40:8000/api';
 
 
   // Generic GET
@@ -22,7 +22,6 @@ class ApiHelper {
   // Generic POST
   static Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
 
-    debugPrint("post method called");
     debugPrint("endpoint: $endpoint");
     debugPrint("body: $body");
     final url = Uri.parse('$baseUrl$endpoint');
@@ -31,6 +30,9 @@ class ApiHelper {
     try {
       final response = await http.post(url,
           headers: await _getHeaders(), body: json.encode(body));
+
+    debugPrint("Response body: ${response.body}");
+
       return _processResponse(response);
     } catch (e) {
       throw Exception('POST Error: $e');
