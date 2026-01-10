@@ -454,7 +454,7 @@ class _FreelancerServicesPageState extends State<FreelancerServicesPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          service.price as String,
+                          ( service.price).toStringAsFixed(2) + ' DZD',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,

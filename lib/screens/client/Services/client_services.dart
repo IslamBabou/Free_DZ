@@ -70,7 +70,7 @@ class _ClientServicePageState extends State<ClientServicePage> {
               onTap: () => _openServiceDetails(service),
               title: Text(service.title, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(service.category),
-              trailing: Text(service.price as String),
+              trailing: Text('${(service.price).toStringAsFixed(2)} DZD'),
             ),
           );
         },

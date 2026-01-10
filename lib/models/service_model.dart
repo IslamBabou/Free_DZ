@@ -94,14 +94,16 @@ class Service {
     FreelancerProfile? freelancer,
   }) {
     return Service(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      category: category ?? this.category,
-      price: price ?? this.price,
-      status: status ?? this.status,
-      freelancer: freelancer ?? this.freelancer,
+      id: json['id'].toString(),
+      title: json['title'] as String,
+      description: json['description'] as String,
+      category: json['category'] as String,
+      price: double.parse(json['price']),
+      status: ServiceStatus.fromString(json['status'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      freelancer: json['freelancer'] != null
+          ? Freelancer.fromJson(json['freelancer'])
+          : null,
     );
   }
 
