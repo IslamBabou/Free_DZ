@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_home_page.dart';
-import 'package:free_dz/screens/client/jobs/my_jobs.dart';
-import '../../services/auth_service.dart';
-import 'package:free_dz/screens/client/Services/services.dart';
+import 'package:free_dz/models/service_model.dart';
 import 'package:free_dz/screens/client/jobs/freelancers.dart';
 import 'package:free_dz/screens/client/jobs/my_jobs.dart';
+import 'package:free_dz/screens/client/services/services.dart';
 import "client_profile.dart";
 import 'package:free_dz/services/api_helper.dart';
 import "../shared/chat_list.dart";
@@ -43,41 +42,40 @@ class _ClientHomePageState extends State<ClientHomePage> {
     });
 
     try {
-      
-      // Fetch freelancers from your API
-      final response = await ApiHelper.get('/freelancer/all');
+      // Load freelancers
+      final freelancersResponse = await ApiHelper.get('/freelancer/all');
+      final List<dynamic> freelancersData = freelancersResponse['data'] ?? [];
 
-      if (response['status'] == 200) {
-        final List<dynamic> data = response['data'];
-        
-        // Parse the API response into FreelancerCard objects
-        _featuredFreelancers = data.map((json) {
-          return FreelancerCard(
-            id: json['id'].toString(),
-            name: json['full_name'] ?? 'Unknown',
-            title: json['professional_title'] ?? 'Freelancer',
-            imageUrl: json['imageUrl'] ?? json['avatar'] ?? 'https://i.pravatar.cc/150?img=1',
-            rating: (json['rating'] ?? 4.5).toDouble(),
-            reviewCount: json['total_reviews'] ?? json['reviews'] ?? 0,
-            hourlyRate: json['hourlyRate'] ?? json['rate'] ?? '0 DA',
-            skills: json['skills'] != null 
-                ? List<String>.from(json['skills']) 
-                : [],
-          );
-        }).toList();
-      } else {
-        throw Exception('Failed to load freelancers: ${response.statusCode}');
-      }
-      if (response['status'] == 401) {
-          await AuthService.logout();
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/login');
-          return;
-      }
-      
+      _featuredFreelancers = freelancersData.map((json) {
+        return FreelancerCard(
+          id: json['id']?.toString() ?? '',
+          name: json['full_name']?.toString().isNotEmpty == true 
+              ? json['full_name'] 
+              : 'Unknown',
+          title: json['professional_title']?.toString().isNotEmpty == true
+              ? json['professional_title']
+              : 'Freelancer',
+          imageUrl: json['avatar_url'] ?? 'https://i.pravatar.cc/150?img=1',
+          rating: (json['rating'] != null ? json['rating'] : 0.0).toDouble(),
+          reviewCount: json['total_reviews'] ?? 0,
+          hourlyRate: (json['hourlyRate']?.toString() ?? '0'),
+          skills: json['skills'] != null ? List<String>.from(json['skills']) : [],
+        );
+      }).toList();
+
+      // Load services
+      final servicesResponse = await ApiHelper.get('/freelancer/services/all');
+      final List<dynamic> servicesData = servicesResponse['data'] ?? [];
+
+      _featuredServices = servicesData.take(10).map((json) {
+        return Service.fromJson(json);
+      }).toList();
+
+      if (!mounted) return;
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading data: $e');
+      if (!mounted) return;
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -135,226 +133,164 @@ class _ClientHomePageState extends State<ClientHomePage> {
       );
     }
 
-    return CustomScrollView(
-      slivers: [
-        // Header with App Name
-        SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.shade700,
-                  Colors.blue.shade500,
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: CustomScrollView(
+        slivers: [
+          // Header with App Name
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.blue.shade700,
+                    Colors.blue.shade500,
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.work_outline,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.work_outline,
-                        color: Colors.white,
-                        size: 28,
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Free DZ',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Free DZ',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Find the perfect freelancer for your project',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white.withOpacity(0.9),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        // Search Bar
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: _buildSearchBar(isDark),
-          ),
-        ),
-
-        // Categories Section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Browse by Category',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+                  const SizedBox(height: 12),
+                  Text(
+                    'Find the perfect freelancer for your project',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
-          ),
-        ),
-
-        // Featured Services Section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Featured Services',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AllServicesScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('See All'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildFeaturedServices(isDark),
-              ],
-            ),
-          ),
-        ),
-
-        // Featured Freelancers Section
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Featured Freelancers',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const FreelancersScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text('See All'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildFeaturedFreelancers(isDark),
-              ],
-            ),
-          ),
-        ),
-
-        // Bottom padding for navigation bar
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 80),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchBar(bool isDark) {
-    return GestureDetector(
-      onTap: () {
-        // Navigate to SearchFreelancers page
-        debugPrint('Navigate to Search');
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.search,
-              color: Colors.grey.shade500,
-              size: 22,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Search freelancers or services...',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 15,
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+
+          
+          // Featured Services Section
+          if (_featuredServices.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Featured Services',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AllServicesScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('See All'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeaturedServices(isDark),
+                  ],
+                ),
+              ),
+            ),
+
+          // Featured Freelancers Section
+          if (_featuredFreelancers.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Featured Freelancers',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const FreelancersScreen(),
+                              ),
+                            );
+                          },
+                          child: const Text('See All'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildFeaturedFreelancers(isDark),
+                  ],
+                ),
+              ),
+            ),
+
+          // Bottom padding for navigation bar
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 80),
+          ),
+        ],
       ),
     );
   }
+
+  
+
+  
 
   
 
@@ -484,7 +420,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
                   // Price
                   Text(
-                    service.price,
+                    '${service.price.toStringAsFixed(2)} ',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -580,39 +516,40 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          freelancer.rating.toStringAsFixed(1),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                if (freelancer.rating > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            color: Colors.amber,
+                            size: 14,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            freelancer.rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
 
@@ -643,42 +580,44 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.reviews_outlined,
-                        size: 14,
-                        color: Colors.grey.shade500,
+                  if (freelancer.reviewCount > 0)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.reviews_outlined,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${freelancer.reviewCount} reviews',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 8),
+                  if (freelancer.hourlyRate != '0')
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${freelancer.reviewCount} reviews',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${freelancer.hourlyRate} DA/hr',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${freelancer.hourlyRate}/hr',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

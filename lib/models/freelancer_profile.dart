@@ -1,106 +1,92 @@
-// ==========================================
-// FREELANCER MODEL
-// ==========================================
-class Freelancer {
-  final String id;
-  final String? fullName;
-  final String? professionalTitle;
-  final String? location;
-  final String? bio;
-  final double? hourlyRate;
-  final int? yearsOfExperience;
-  final String? responseTime;
-  final List<String>? languages;
-  final List<String>? skills;
-  final List<String>? services;
-  final List<String>? portfolio;
-  final List<String>? reviews;
-  final Map<String, int>? ratingDistribution;
-  final double rating;
-  final String? avatarUrl;
+import 'package:free_dz/models/service_model.dart';
 
-  Freelancer({
+class FreelancerProfile {
+  final String id;
+  final String fullName;
+  final String professionalTitle;
+  final String location;
+  final String? avatarUrl;
+  final int hourlyRate;
+  final bool isOnline;
+  final bool isVerified;
+  final double rating;
+  final int totalReviews;
+  final int completedJobs;
+  final String responseTime;
+  final String bio;
+  final int yearsOfExperience;
+  final List<String> languages;
+  final List<String> skills;
+  final List<Service> services;
+  final List<dynamic> reviews;
+
+  FreelancerProfile({
     required this.id,
-    this.fullName,
-    this.professionalTitle,
-    this.location,
-    this.bio,
-    this.hourlyRate,
-    this.yearsOfExperience,
-    this.responseTime,
-    this.languages,
-    this.skills,
-    this.services,
-    this.portfolio,
-    this.reviews,
-    this.ratingDistribution,
-    required this.rating,
+    required this.fullName,
+    required this.professionalTitle,
+    required this.location,
     this.avatarUrl,
+    required this.hourlyRate,
+    required this.isOnline,
+    required this.isVerified,
+    required this.rating,
+    required this.totalReviews,
+    required this.completedJobs,
+    required this.responseTime,
+    required this.bio,
+    required this.yearsOfExperience,
+    required this.languages,
+    required this.skills,
+    required this.services,
+    required this.reviews,
   });
 
-  factory Freelancer.fromJson(Map<String, dynamic> json) {
-    return Freelancer(
-      id: json['id'].toString(),
-      fullName: json['full_name'] as String?,
-      professionalTitle: json['professional_title'] as String?,
-      location: json['location'] as String?,
-      bio: json['bio'] as String?,
-      hourlyRate: (json['hourlyRate'] != null)
-          ? (json['hourlyRate'] as num).toDouble()
-          : null,
-      yearsOfExperience: json['years_of_experience'] as int?,
-      responseTime: json['response_time'] as String?,
-      languages: (json['languages'] != null)
-          ? List<String>.from(json['languages'])
-          : null,
-      skills: (json['skills'] != null)
-          ? List<String>.from(json['skills'])
-          : null,
-      services: (json['services'] != null)
-          ? List<String>.from(json['services'])
-          : null,
-      portfolio: (json['portfolio'] != null)
-          ? List<String>.from(json['portfolio'])
-          : null,
-      reviews: (json['reviews'] != null)
-          ? List<String>.from(json['reviews'])
-          : null,
-      ratingDistribution: (json['rating_distribution'] != null)
-          ? Map<String, int>.from(json['rating_distribution'])
-          : null,
-      rating: (json['rating'] != null) ? (json['rating'] as num).toDouble() : 0.0,
-      avatarUrl: json['avatar'] as String?,
-    );
-  }
-
+  factory FreelancerProfile.fromJson(Map<String, dynamic> json) {
+  return FreelancerProfile(
+    id: json['id'].toString(),
+    fullName: json['full_name'] ?? '',
+    professionalTitle: json['professional_title'] ?? '',
+    location: json['location'] ?? '',
+    avatarUrl: json['avatar_url'],
+    hourlyRate: (json['hourlyRate'] ?? 0).toDouble(),
+    isOnline: json['is_online'] ?? false,
+    isVerified: json['is_verified'] ?? false,
+    rating: (json['rating'] ?? 0).toDouble(),
+    totalReviews: (json['total_reviews'] ?? 0).toInt(),
+    completedJobs: (json['completed_jobs'] ?? 0).toInt(),
+    responseTime: json['response_time'] ?? '',
+    bio: json['bio'] ?? '',
+    yearsOfExperience: (json['years_of_experience'] ?? 0).toInt(),
+    languages: List<String>.from(json['languages'] ?? []),
+    skills: List<String>.from(json['skills'] ?? []),
+    services: json['services'] != null
+    ? List<Service>.from(json['services'].map((s) => Service.fromJson(s)))
+    : [],
+    reviews: json['reviews'] != null
+        ? List<dynamic>.from(json['reviews'])
+        : [],
+  );
+}
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'full_name': fullName,
       'professional_title': professionalTitle,
       'location': location,
-      'bio': bio,
+      'avatar_url': avatarUrl,
       'hourlyRate': hourlyRate,
-      'years_of_experience': yearsOfExperience,
+      'is_online': isOnline,
+      'is_verified': isVerified,
+      'rating': rating,
+      'total_reviews': totalReviews,
+      'completed_jobs': completedJobs,
       'response_time': responseTime,
+      'bio': bio,
+      'years_of_experience': yearsOfExperience,
       'languages': languages,
       'skills': skills,
       'services': services,
-      'portfolio': portfolio,
       'reviews': reviews,
-      'rating_distribution': ratingDistribution,
-      'avatar': avatarUrl,
     };
   }
-
-  double get averageRating {
-  if (ratingDistribution == null || ratingDistribution!.isEmpty) return 0.0;
-  int totalStars = 0;
-  int totalVotes = 0;
-  ratingDistribution!.forEach((star, count) {
-    totalStars += int.parse(star) * count;
-    totalVotes += count;
-  });
-  return totalVotes > 0 ? totalStars / totalVotes : 0.0;
-}
 }

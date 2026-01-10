@@ -29,12 +29,8 @@ class _ClientServicePageState extends State<ClientServicePage> {
 
     try {
       final data = await ApiHelper.get('/freelancer/services/all'); // public endpoint returning all active services
-
-      final List<dynamic> servicesJson = data['services'];
-
-
+      final List<dynamic> servicesJson = data is List ? data : data['services'];
       _services = servicesJson.map((json) => Service.fromJson(json)).toList();
-      _services.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading services: $e');

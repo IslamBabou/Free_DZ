@@ -56,7 +56,7 @@ class _CreateServicePageState extends State<CreateServicePage> {
         'price': int.parse(_priceController.text.trim()),
       };
 
-      final response = await ApiHelper.post('/freelancer/services', serviceData);
+      await ApiHelper.post('/freelancer/services', serviceData);
 
 
       if (mounted) {
