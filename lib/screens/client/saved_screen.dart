@@ -48,20 +48,21 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     });
 
     try {
-      final response = await ApiHelper.get('/client/saved-services');
+      final response = await ApiHelper.get('/services/favorites');
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+      if (response['status'] == 200) {
+        final List<dynamic> data = response['data'];
+        debugPrint('Saved services data: $data');
         _savedServices = data.map((json) => SavedService.fromJson(json)).toList();
         _applyFiltersAndSort();
         
         if (!mounted) return;
         setState(() => _isLoading = false);
-      } else if (response.statusCode == 401) {
+      } else if (response['status'] == 401) {
         await AuthService.logout();
         if (!mounted) return;
         _redirectToLogin();
-      } else if (response.statusCode == 403) {
+      } else if (response['status'] == 403) {
         if (!mounted) return;
         _redirectToRoleDashboard();
       } else {
@@ -139,11 +140,10 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
       }
 
       final response = await ApiHelper.post(
-        '/client/saved-services/${service.id}/remove',
-        {},
+        'services/${service.id}',        {},
       );
 
-      if (response.statusCode == 200) {
+      if (response['status'] == 200) {
         if (!mounted) return;
         
         setState(() {
@@ -158,7 +158,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-      } else if (response.statusCode == 401) {
+      } else if (response['status'] == 401) {
         await AuthService.logout();
         if (!mounted) return;
         _redirectToLogin();

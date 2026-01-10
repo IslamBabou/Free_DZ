@@ -220,7 +220,7 @@ class _ServiceDetailsPageState extends State<ServiceDetailsPage> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      service.price,
+                                      (   service.price).toStringAsFixed(2) + ' DZD',
                                       style: TextStyle(
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,

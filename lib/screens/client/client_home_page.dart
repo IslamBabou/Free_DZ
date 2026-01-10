@@ -75,20 +75,20 @@ class _ClientHomePageState extends State<ClientHomePage> {
     try {
       
       // Fetch freelancers from your API
-      final response = await ApiHelper.get('/client/freelancers');
+      final response = await ApiHelper.get('/freelancer/all');
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
+      if (response['status'] == 200) {
+        final List<dynamic> data = response['data'];
         
         // Parse the API response into FreelancerCard objects
         _featuredFreelancers = data.map((json) {
           return FreelancerCard(
             id: json['id'].toString(),
-            name: json['name'] ?? 'Unknown',
-            title: json['title'] ?? 'Freelancer',
+            name: json['full_name'] ?? 'Unknown',
+            title: json['professional_title'] ?? 'Freelancer',
             imageUrl: json['imageUrl'] ?? json['avatar'] ?? 'https://i.pravatar.cc/150?img=1',
             rating: (json['rating'] ?? 4.5).toDouble(),
-            reviewCount: json['reviewCount'] ?? json['reviews'] ?? 0,
+            reviewCount: json['total_reviews'] ?? json['reviews'] ?? 0,
             hourlyRate: json['hourlyRate'] ?? json['rate'] ?? '0 DA',
             skills: json['skills'] != null 
                 ? List<String>.from(json['skills']) 
@@ -98,7 +98,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
       } else {
         throw Exception('Failed to load freelancers: ${response.statusCode}');
       }
-      if (response.statusCode == 401) {
+      if (response['status'] == 401) {
           await AuthService.logout();
           if (!mounted) return;
           Navigator.pushReplacementNamed(context, '/login');
