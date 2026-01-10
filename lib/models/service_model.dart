@@ -41,7 +41,7 @@ class Service {
   final String title;
   final String description;
   final String category;
-  final String price;
+  final double price;
   final ServiceStatus status;
   final DateTime createdAt;
   final Freelancer? freelancer; // link to the full freelancer profile
@@ -63,7 +63,7 @@ class Service {
       title: json['title'] as String,
       description: json['description'] as String,
       category: json['category'] as String,
-      price: json['price'].toString(),
+      price: double.parse(json['price']),
       status: ServiceStatus.fromString(json['status'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
       freelancer: json['freelancer'] != null

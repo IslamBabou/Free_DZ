@@ -4,7 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:free_dz/services/auth_service.dart';
 
 class ApiHelper {
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
+  static const String baseUrl = 
+  //'http://127.0.0.1:8000/api';
+     // for lotfi :
+      'http://192.168.5.40:8000/api'; 
 
 
   // Generic GET
@@ -74,11 +77,11 @@ class ApiHelper {
   }
 
   static dynamic _processResponse(http.Response response) {
-    final decoded = json.decode(response.body);
+  final decoded = json.decode(response.body);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      debugPrint('Response Data: $decoded');
-      return decoded;
+  if (response.statusCode == 200 || response.statusCode == 201) {
+    debugPrint('Response Data: $decoded');
+    return decoded;
   
     } else if (response.statusCode == 401) {
       AuthService.logout();

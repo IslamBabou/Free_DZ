@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/client_home_page.dart';
+import 'package:free_dz/screens/client/jobs/my_jobs.dart';
+import '../../services/auth_service.dart';
 import 'package:free_dz/screens/client/Services/services.dart';
 import 'package:free_dz/screens/client/jobs/freelancers.dart';
 import 'package:free_dz/screens/client/jobs/my_jobs.dart';
@@ -41,33 +43,38 @@ class _ClientHomePageState extends State<ClientHomePage> {
     });
 
     try {
-      // Load freelancers
-      final freelancersResponse = await ApiHelper.get('/freelancer/all');
-      final List<dynamic> freelancersData = freelancersResponse['data'] ?? [];
+      
+      // Fetch freelancers from your API
+      final response = await ApiHelper.get('/freelancer/all');
 
-      _featuredFreelancers = freelancersData.map((json) {
-        return FreelancerCard(
-          id: json['id'].toString(),
-          name: json['full_name'] ?? 'Unknown',
-          title: json['professional_title'] ?? 'Freelancer',
-          imageUrl: json['avatar_url'] ??
-              json['imageUrl'] ??
-              'https://i.pravatar.cc/150?img=1',
-          rating: (json['rating'] ?? 4.5).toDouble(),
-          reviewCount: json['total_reviews'] ?? json['reviews'] ?? 0,
-          hourlyRate: (json['hourlyRate'] ?? 0).toString(),
-          skills: json['skills'] != null ? List<String>.from(json['skills']) : [],
-        );
-      }).toList();
-
-      // Load services
-      final servicesResponse = await ApiHelper.get('/freelancer/services/all');
-      final List<dynamic> servicesData = servicesResponse['data'] ?? [];
-
-      _featuredServices = servicesData.take(10).map((json) {
-        return Service.fromJson(json);
-      }).toList();
-
+      if (response['status'] == 200) {
+        final List<dynamic> data = response['data'];
+        
+        // Parse the API response into FreelancerCard objects
+        _featuredFreelancers = data.map((json) {
+          return FreelancerCard(
+            id: json['id'].toString(),
+            name: json['full_name'] ?? 'Unknown',
+            title: json['professional_title'] ?? 'Freelancer',
+            imageUrl: json['imageUrl'] ?? json['avatar'] ?? 'https://i.pravatar.cc/150?img=1',
+            rating: (json['rating'] ?? 4.5).toDouble(),
+            reviewCount: json['total_reviews'] ?? json['reviews'] ?? 0,
+            hourlyRate: json['hourlyRate'] ?? json['rate'] ?? '0 DA',
+            skills: json['skills'] != null 
+                ? List<String>.from(json['skills']) 
+                : [],
+          );
+        }).toList();
+      } else {
+        throw Exception('Failed to load freelancers: ${response.statusCode}');
+      }
+      if (response['status'] == 401) {
+          await AuthService.logout();
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/login');
+          return;
+      }
+      
       setState(() => _isLoading = false);
     } catch (e) {
       debugPrint('Error loading data: $e');

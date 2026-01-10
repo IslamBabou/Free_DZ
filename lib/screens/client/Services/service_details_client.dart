@@ -93,7 +93,7 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
               children: [
                 const Icon(Icons.payments_outlined),
                 const SizedBox(width: 8),
-                Text(service.price, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text((service.price).toStringAsFixed(2) + ' DZD' , style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 20),
