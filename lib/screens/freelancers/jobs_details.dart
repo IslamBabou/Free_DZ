@@ -70,10 +70,12 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
 
     try {
       if (_isSaved) {
-        await ApiHelper.post('/projects/${widget.jobId}', {});
+        await ApiHelper.post('/favorites', {
+              'project_id' : widget.jobId
+        });
         _showSnackBar('Job saved successfully');
       } else {
-        await ApiHelper.delete('/jobs/${widget.jobId}/save');
+        await ApiHelper.delete('/favorites/${widget.jobId}');
         _showSnackBar('Job removed from saved');
       }
     } catch (e) {
