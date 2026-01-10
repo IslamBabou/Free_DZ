@@ -44,7 +44,7 @@ Future<void> _loadJobs() async {
 
   try {
     // API call using ApiHelper
-    final data = await ApiHelper.get('/projects');
+    final data = await ApiHelper.get('/projects/all');
     if (data is List) {
       // Filter only maps
       final jobsData = data.whereType<Map<String, dynamic>>().toList();
