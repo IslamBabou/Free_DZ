@@ -3,7 +3,7 @@ import 'package:free_dz/models/client_home_page.dart' hide Service;
 import 'package:free_dz/models/service_model.dart';
 import 'package:free_dz/screens/client/jobs/freelancers.dart';
 import 'package:free_dz/screens/client/jobs/my_jobs.dart';
-import 'package:free_dz/screens/client/services/services.dart';
+import 'package:free_dz/screens/client/Services/services.dart';
 import "client_profile.dart";
 import 'package:free_dz/services/api_helper.dart';
 import "../shared/chat_list.dart";
