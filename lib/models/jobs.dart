@@ -28,7 +28,7 @@ class Job {
       id: json['id'].toString(),
         title: json['title'] ?? '',
         clientName: json['client_name'] ?? '',
-        budget: (double.parse(json['budget'])).toInt(),
+        budget: (json['budget'] != null) ? double.parse(json['budget'].toString()).toInt() : 0,
         category: json['category_badge'] ?? 'General',
         description: json['description'] ?? '',
         postedDate: DateTime.parse(json['posted_at'] ?? DateTime.now().toIso8601String()),
@@ -37,10 +37,7 @@ class Job {
   }
 }
 
-// ==========================================
-// CLIENT JOB MODEL
-// ==========================================
-// Extends the base Job model with client-specific fields
+
 
 // ==========================================
 // CLIENT JOB MODEL

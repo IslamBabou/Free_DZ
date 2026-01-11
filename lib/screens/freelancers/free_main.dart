@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'package:free_dz/screens/freelancers/freelancers_services.dart';
+import 'package:free_dz/screens/freelancers/jobs/jobs.dart';
 
 
 import 'free_home.dart';
-import 'jobs.dart';
 import 'package:free_dz/screens/shared/chat_list.dart';
 
 // ==========================================

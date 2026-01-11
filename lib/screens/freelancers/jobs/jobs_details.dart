@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/jobs.dart';
+import 'package:free_dz/screens/freelancers/jobs/jobs_proposal.dart';
 import 'package:free_dz/services/api_helper.dart';
 
 // ==========================================
@@ -93,15 +94,14 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
   void _submitProposal() {
     if (_job == null) return;
     
-    // TODO: Navigate to proposal submission page
     debugPrint('Navigate to proposal submission for job: ${_job!.id}');
     
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => SubmitProposalPage(job: _job!),
-    //   ),
-    // );
+     Navigator.push(
+       context,
+       MaterialPageRoute(
+         builder: (context) => SubmitProposalPage(job: _job!),
+       ),
+     );
     
     _showSnackBar('Proposal submission page coming soon');
   }
