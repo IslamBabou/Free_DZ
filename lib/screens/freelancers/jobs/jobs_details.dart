@@ -42,7 +42,7 @@ class _JobDetailsPageState extends State<JobDetailsPage> {
     try {
       final data = await ApiHelper.get('/projects/${widget.jobId}');
       
-      _job = Job.fromJson(data);
+      _job = Job.fromJson(data['data']);
       _isSaved = data['isSaved'] ?? false;
       
       setState(() => _isLoading = false);

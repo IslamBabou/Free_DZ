@@ -3,6 +3,8 @@
 // ENUMS
 // ==========================================
 
+// ignore_for_file: unnecessary_this
+
 enum MessageStatus { 
   sending, 
   sent, 
