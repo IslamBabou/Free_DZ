@@ -41,30 +41,30 @@ class _ChatListPageState extends State<ChatListPage> {
     });
 
     try {
-      final data = await ApiHelper.get('/conversations');
-      
-      final List<dynamic> conversationsJson = data is List ? data : data['conversations'];
-      _conversations = conversationsJson.map((json) => Conversation.fromJson(json)).toList();
-      _conversations.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-      _filteredConversations = _conversations;
-      
+      final List data = await ApiHelper.get('/conversations');
+
+      _conversations =
+          data.map((json) => Conversation.fromJson(json)).toList()
+            ..sort((a, b) =>
+                b.lastMessageTime.compareTo(a.lastMessageTime));
+
+      _filteredConversations = List.from(_conversations);
+
       setState(() => _isLoading = false);
-    } on Exception catch (e) {
-      final errorMsg = e.toString();
-      
-      if (errorMsg.contains('Unauthorized')) {
+    } catch (e) {
+      debugPrint('Error loading conversations: $e');
+
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+
+      if (e.toString().contains('Unauthorized')) {
         _redirectToLogin();
-      } else if (errorMsg.contains('403')) {
-        _redirectToRoleDashboard();
-      } else {
-        debugPrint('Error loading conversations: $e');
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-        });
       }
     }
   }
+
 
   void _filterConversations(String query) {
     setState(() {
@@ -73,7 +73,7 @@ class _ChatListPageState extends State<ChatListPage> {
       } else {
         _filteredConversations = _conversations
             .where((conv) =>
-                conv.freelancer.name.toLowerCase().contains(query.toLowerCase()) ||
+                conv.peerName.toLowerCase().contains(query.toLowerCase()) ||
                 conv.lastMessage.toLowerCase().contains(query.toLowerCase()))
             .toList();
       }
@@ -85,24 +85,22 @@ class _ChatListPageState extends State<ChatListPage> {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
-  void _redirectToRoleDashboard() {
-    debugPrint('Redirecting to appropriate dashboard...');
-    Navigator.pushNamedAndRemoveUntil(context, '/role-selection', (route) => false);
-  }
+  
 
-  void _openChat(Conversation conversation) {
-    debugPrint('Opening chat with ${conversation.freelancer.name}');
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatPage(
-          conversationId: conversation.id,
-          freelancer: conversation.freelancer,
-        ),
+  void _openChat(Conversation conversation) async {
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ChatPage(
+        conversationId: conversation.id
       ),
-    );
-  }
+    ),
+  );
+
+  // Refresh conversations after coming back
+  await _loadConversations();
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -289,10 +287,10 @@ class _ChatListPageState extends State<ChatListPage> {
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: Colors.blue.shade100,
-                  child: conversation.freelancer.avatarUrl != null
+                  child: conversation.peerAvatarUrl != null
                       ? ClipOval(
                           child: Image.network(
-                            conversation.freelancer.avatarUrl!,
+                            conversation.peerAvatarUrl!,
                             width: 56,
                             height: 56,
                             fit: BoxFit.cover,
@@ -303,24 +301,7 @@ class _ChatListPageState extends State<ChatListPage> {
                         )
                       : Icon(Icons.person, size: 32, color: Colors.blue.shade700),
                 ),
-                if (conversation.isOnline)
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+              ]
             ),
             const SizedBox(width: 12),
 
@@ -334,7 +315,7 @@ class _ChatListPageState extends State<ChatListPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          conversation.freelancer.name,
+                          conversation.peerName,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

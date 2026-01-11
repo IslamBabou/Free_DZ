@@ -2,6 +2,7 @@ import 'package:free_dz/models/service_model.dart';
 
 class FreelancerProfile {
   final String id;
+  final String userId; // <-- add this!
   final String fullName;
   final String professionalTitle;
   final String location;
@@ -22,6 +23,7 @@ class FreelancerProfile {
 
   FreelancerProfile({
     required this.id,
+    required this.userId,
     required this.fullName,
     required this.professionalTitle,
     required this.location,
@@ -44,6 +46,7 @@ class FreelancerProfile {
   factory FreelancerProfile.fromJson(Map<String, dynamic> json) {
   return FreelancerProfile(
     id: json['id'].toString(),
+    userId: json['user_id'].toString(),
     fullName: json['full_name'] ?? '',
     professionalTitle: json['professional_title'] ?? '',
     location: json['location'] ?? '',
@@ -70,6 +73,7 @@ class FreelancerProfile {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'user_id': userId,
       'full_name': fullName,
       'professional_title': professionalTitle,
       'location': location,

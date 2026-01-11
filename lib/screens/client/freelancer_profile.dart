@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:free_dz/models/freelancer_profile.dart';
 import 'package:free_dz/models/service_model.dart';
 import 'package:free_dz/services/api_helper.dart';
+import 'package:free_dz/services/message_service.dart';
 
 class FreelancerProfileScreen extends StatefulWidget {
   final String freelancerId;
@@ -24,7 +25,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
 
   FreelancerProfile? _profile;
   late TabController _tabController;
-
+  
   @override
   void initState() {
     super.initState();
@@ -97,32 +98,48 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
   }
 
   Widget _header() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundImage: _profile!.avatarUrl != null
-                ? NetworkImage(_profile!.avatarUrl!)
-                : null,
-            child: _profile!.avatarUrl == null
-                ? Text(
-                    _profile!.fullName[0].toUpperCase(),
-                    style: const TextStyle(fontSize: 32),
-                  )
-                : null,
+  return Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      children: [
+        CircleAvatar(
+          radius: 50,
+          backgroundImage: _profile!.avatarUrl != null
+              ? NetworkImage(_profile!.avatarUrl!)
+              : null,
+          child: _profile!.avatarUrl == null
+              ? Text(
+                  _profile!.fullName[0].toUpperCase(),
+                  style: const TextStyle(fontSize: 32),
+                )
+              : null,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          _profile!.fullName,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        Text(_profile!.professionalTitle),
+        const SizedBox(height: 16),
+
+        // ✅ MESSAGE BUTTON
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.chat),
+            label: const Text('Message Freelancer'),
+            onPressed: () {
+              ConversationService.startConversation(
+                context: context,
+                freelancerId: _profile!.userId,
+              );
+            },
           ),
-          const SizedBox(height: 12),
-          Text(
-            _profile!.fullName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          Text(_profile!.professionalTitle),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _stats() {
     return Row(

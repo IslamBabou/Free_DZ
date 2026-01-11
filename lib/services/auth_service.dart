@@ -16,6 +16,18 @@ class AuthService {
     await _storage.delete(key: _tokenKey);
   }
 
+  // Store current user ID (from login response)
+  static String? _currentUserId;
+
+  // Call this when user logs in
+  static void setCurrentUserId(String userId) {
+    _currentUserId = userId;
+  }
+
+  // Get the current logged-in user ID
+  static String? get currentUserId => _currentUserId;
+
+ 
   static Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null;

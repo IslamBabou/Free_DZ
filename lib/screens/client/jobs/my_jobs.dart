@@ -22,7 +22,7 @@ class _MyJobsPageState extends State<MyJobsPage> {
 
   Future<void> _fetchJobs() async {
     try {
-      final response = await ApiHelper.get('/projects');
+      final response = await ApiHelper.get('/client/projects');
       final List data = response['data'];
       print('JSON received: ${response['data']}'); // <- Add this
 

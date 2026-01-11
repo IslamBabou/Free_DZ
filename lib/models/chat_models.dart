@@ -101,42 +101,47 @@ class FreelancerInfo {
 
 class Conversation {
   final String id;
-  final FreelancerInfo freelancer;
+  final String peerId;
+  final String peerName;
+  final String? peerAvatarUrl;
   final String lastMessage;
   final DateTime lastMessageTime;
   final int unreadCount;
-  final bool isOnline;
 
   Conversation({
     required this.id,
-    required this.freelancer,
+    required this.peerId,
+    required this.peerName,
+    this.peerAvatarUrl,
     required this.lastMessage,
     required this.lastMessageTime,
     required this.unreadCount,
-    required this.isOnline,
   });
 
   factory Conversation.fromJson(Map<String, dynamic> json) {
+    final peer = json['peer'] ?? {};
     return Conversation(
       id: json['id'].toString(),
-      freelancer: FreelancerInfo.fromJson(json['freelancer'] ?? {}),
+      peerId: peer['id'].toString(),
+      peerName: peer['name'] ?? 'Unknown',
+      peerAvatarUrl: peer['avatarUrl'],
       lastMessage: json['lastMessage'] ?? '',
-      lastMessageTime: DateTime.parse(
-        json['lastMessageTime'] ?? DateTime.now().toIso8601String()
-      ),
+      lastMessageTime: DateTime.parse(json['lastMessageTime']),
       unreadCount: json['unreadCount'] ?? 0,
-      isOnline: json['isOnline'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'freelancer': freelancer.toJson(),
+      'peer': {
+        'id': peerId,
+        'name': peerName,
+        'avatarUrl': peerAvatarUrl,
+      },
       'lastMessage': lastMessage,
       'lastMessageTime': lastMessageTime.toIso8601String(),
       'unreadCount': unreadCount,
-      'isOnline': isOnline,
     };
   }
 
@@ -150,14 +155,14 @@ class Conversation {
   }) {
     return Conversation(
       id: id ?? this.id,
-      freelancer: freelancer ?? this.freelancer,
+      peerId: freelancer?.id ?? this.peerId,
+      peerName: freelancer?.name ?? this.peerName,
+      peerAvatarUrl: freelancer?.avatarUrl ?? this.peerAvatarUrl,
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       unreadCount: unreadCount ?? this.unreadCount,
-      isOnline: isOnline ?? this.isOnline,
     );
   }
-
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
@@ -167,10 +172,7 @@ class Conversation {
   @override
   int get hashCode => id.hashCode;
 
-  @override
-  String toString() {
-    return 'Conversation(id: $id, freelancer: ${freelancer.name}, unreadCount: $unreadCount)';
-  }
+  
 }
 
 // ==========================================
@@ -305,6 +307,35 @@ class ChatMessage {
     return 'ChatMessage(id: $id, sender: $senderRole, status: ${status.name}, type: ${type.name})';
   }
 }
+
+class ChatUser {
+  final String id;
+  final String name;
+  final String? avatarUrl;
+  final bool isOnline;
+  final DateTime? lastSeen;
+
+  ChatUser({
+    required this.id,
+    required this.name,
+    this.avatarUrl,
+    required this.isOnline,
+    this.lastSeen,
+  });
+
+  factory ChatUser.fromJson(Map<String, dynamic> json) {
+    return ChatUser(
+      id: json['id'].toString(),
+      name: json['name'] ?? 'Unknown',
+      avatarUrl: json['avatarUrl'],
+      isOnline: json['isOnline'] ?? false,
+      lastSeen: json['lastSeen'] != null
+          ? DateTime.parse(json['lastSeen'])
+          : null,
+    );
+  }
+}
+
 
 // ==========================================
 // TYPING INDICATOR MODEL

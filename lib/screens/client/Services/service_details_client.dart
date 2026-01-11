@@ -55,8 +55,8 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ChatPage(
-          conversationId: 'conv_${freelancer.id}',
-          freelancer: freelancer.toFreelancerInfo(),
+          conversationId: 'conv_${freelancer.id}'
+          
         ),
       ),
     );
