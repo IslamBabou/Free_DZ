@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:free_dz/screens/freelancers/jobs_details.dart';
+import 'package:free_dz/screens/freelancers/jobs/jobs_details.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/models/jobs.dart';
 
@@ -43,24 +43,32 @@ Future<void> _loadJobs() async {
   });
 
   try {
-    // API call using ApiHelper
-    final data = await ApiHelper.get('/projects/all');
-    if (data is List) {
-      // Filter only maps
-      final jobsData = data.whereType<Map<String, dynamic>>().toList();
+    // Call your API
+    final response = await ApiHelper.get('/projects/all');
+
+    // Make sure to get the 'data' list
+    if (response != null && response['data'] is List) {
+      final List<dynamic> data = response['data'];
+
+      // Map each JSON object to a Job instance
+      final jobsList = data
+          .whereType<Map<String, dynamic>>()
+          .map<Job>((json) => Job.fromJson(json))
+          .toList();
 
       setState(() {
-        _jobs = jobsData.map<Job>((e) => Job.fromJson(e)).toList();
-        _filteredJobs = _jobs; // if you are filtering later
+        _jobs = jobsList;
+        _filteredJobs = _jobs; // initially, filtered = all
         _isLoading = false;
       });
 
-      // Optional: print to debug
       debugPrint('_jobs loaded: ${_jobs.length}');
-      _jobs.forEach((job) => debugPrint('Job title: ${job.title}'));
+      for (var job in _jobs) {
+        debugPrint('Job title: ${job.title}, category: ${job.category}');
+      }
 
     } else {
-      debugPrint('API returned unexpected format: $data');
+      debugPrint('API returned unexpected format: $response');
       setState(() {
         _jobs = [];
         _filteredJobs = [];
@@ -69,81 +77,17 @@ Future<void> _loadJobs() async {
     }
   } catch (e) {
     debugPrint('Error loading jobs: $e');
-
     setState(() {
-      _jobs = []; // or _getMockJobs() if you want
-      _filteredJobs = _jobs;
+      _jobs = [];
+      _filteredJobs = [];
       _isLoading = false;
       _hasError = true;
-      debugPrint('Using mock data due to API error');
     });
   }
 }
 
-  /* List<Job> _getMockJobs() {
-    return [
-      Job(
-        id: 'JOB001',
-        title: 'Mobile App UI/UX Design',
-        clientName: 'Ahmed Benali',
-        budget: '30,000 - 50,000 DA',
-        category: 'Design',
-        description: 'Looking for an experienced UI/UX designer to create a modern mobile app design for an e-commerce platform.',
-        postedDate: DateTime.now().subtract(const Duration(hours: 2)),
-        proposalsCount: 5,
-      ),
-      Job(
-        id: 'JOB002',
-        title: 'Flutter Developer for Delivery App',
-        clientName: 'Karim Mansouri',
-        budget: '80,000 - 120,000 DA',
-        category: 'Development',
-        description: 'Need a skilled Flutter developer to build a food delivery application with real-time tracking.',
-        postedDate: DateTime.now().subtract(const Duration(hours: 5)),
-        proposalsCount: 12,
-      ),
-      Job(
-        id: 'JOB003',
-        title: 'Content Writing for Tech Blog',
-        clientName: 'Sarah Boudiaf',
-        budget: '5,000 - 10,000 DA',
-        category: 'Writing',
-        description: 'Looking for a tech writer to create 10 SEO-optimized blog posts about software development.',
-        postedDate: DateTime.now().subtract(const Duration(days: 1)),
-        proposalsCount: 8,
-      ),
-      Job(
-        id: 'JOB004',
-        title: 'Social Media Marketing Campaign',
-        clientName: 'Yacine Belkacem',
-        budget: '25,000 - 40,000 DA',
-        category: 'Marketing',
-        description: 'Need a digital marketer to run a 30-day Instagram and Facebook campaign for a new product launch.',
-        postedDate: DateTime.now().subtract(const Duration(days: 1)),
-        proposalsCount: 15,
-      ),
-      Job(
-        id: 'JOB005',
-        title: 'Logo Design for Startup',
-        clientName: 'Lina Amrani',
-        budget: '8,000 - 15,000 DA',
-        category: 'Design',
-        description: 'Startup company needs a professional logo design with brand guidelines.',
-        postedDate: DateTime.now().subtract(const Duration(days: 2)),
-        proposalsCount: 20,
-      ),
-      Job(
-        id: 'JOB006',
-        title: 'Video Editing for YouTube Channel',
-        clientName: 'Mehdi Ziane',
-        budget: '12,000 - 20,000 DA',
-        category: 'Video',
-        description: 'Looking for a video editor to edit weekly YouTube videos (10-15 minutes each).',
-        postedDate: DateTime.now().subtract(const Duration(days: 3)),
-        proposalsCount: 6,
-      ),
-    ]; 
-  }*/
+
+  
 
   void _searchJobs(String query) {
     setState(() {
