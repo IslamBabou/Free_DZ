@@ -59,41 +59,24 @@ class Proposal {
   });
 
   factory Proposal.fromJson(Map<String, dynamic> json) {
-    final freelancerData = json['freelancer'] ?? {};
-    
-    return Proposal(
-      id: json['id'].toString(),
-      jobId: json['job_id']?.toString() ?? json['jobId']?.toString() ?? '',
-      freelancerId: json['freelancer_id']?.toString() ?? 
-                   json['freelancerId']?.toString() ?? 
-                   freelancerData['id']?.toString() ?? '',
-      freelancerName: freelancerData['name'] ?? 
-                     freelancerData['full_name'] ?? 
-                     json['freelancer_name'] ?? 
-                     'Unknown',
-      freelancerAvatar: freelancerData['avatar_url'] ?? 
-                       freelancerData['avatarUrl'] ?? 
-                       freelancerData['avatar'],
-      freelancerRating: (freelancerData['rating'] ?? 
-                        freelancerData['average_rating'])?.toDouble(),
-      completedJobs: freelancerData['completed_jobs'] ?? 
-                    freelancerData['completedJobs'] ?? 
-                    0,
-      bidAmount: json['bid_amount'] ?? json['bidAmount'] ?? 0,
-      deliveryTime: json['delivery_time'] ?? json['deliveryTime'] ?? 0,
-      coverLetter: json['cover_letter'] ?? json['coverLetter'] ?? '',
-      status: _parseStatus(json['status']),
-      submittedAt: DateTime.parse(
-        json['submitted_at'] ?? 
-        json['submittedAt'] ?? 
-        json['created_at'] ?? 
-        DateTime.now().toIso8601String()
-      ),
-      respondedAt: json['responded_at'] != null || json['respondedAt'] != null
-          ? DateTime.parse(json['responded_at'] ?? json['respondedAt'])
-          : null,
-    );
-  }
+  final freelancer = json['freelancer'];
+  final profile = freelancer?['freelancer_profile'];
+
+  return Proposal(
+    id: json['id'].toString(),
+    jobId: json['project_id'].toString(),
+    freelancerId: json['freelancer_id'].toString(),
+    freelancerName: profile?['full_name'] ?? 'Unknown',
+    freelancerAvatar: profile?['avatar_url'],
+    freelancerRating: (profile?['rating'] as num?)?.toDouble(),
+    completedJobs: profile?['completed_jobs'] ?? 0,
+    bidAmount: _parseInt(json['bid_amount'] ?? json['bidAmount']),
+    deliveryTime: _parseInt(json['delivery_time'] ?? json['deliveryTime']),
+    coverLetter: json['cover_letter'] ?? '',
+    status: _parseStatus(json['status']),
+    submittedAt: DateTime.parse(json['submitted_at']),
+  );
+}
 
   static ProposalStatus _parseStatus(String? status) {
     switch (status?.toLowerCase()) {
@@ -167,6 +150,15 @@ class Proposal {
   String toString() {
     return 'Proposal(id: $id, freelancer: $freelancerName, bid: $bidAmount DA, status: ${status.name})';
   }
+  
+  static int _parseInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is double) return value.toInt();
+  if (value is String) return int.tryParse(value.split('.').first) ?? 0;
+  return 0;
+}
+
 }
 
 // Helper class for proposal submission

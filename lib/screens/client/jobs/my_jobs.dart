@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/screens/client/jobs/Edit_job.dart';
+import 'package:free_dz/screens/client/jobs/job_proposals.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/models/jobs.dart';
 import 'create_job.dart';
@@ -70,28 +72,108 @@ class _MyJobsPageState extends State<MyJobsPage> {
                     padding: const EdgeInsets.all(16),
                     itemCount: _jobs.length,
                     itemBuilder: (context, index) {
-                      return _JobCard(job: _jobs[index]);
-                    },
+                            final job = _jobs[index];
+
+                            return _JobCard(
+                              job: job,
+
+                              onOpen: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => JobProposalsPage(projectId: job.id),
+                                  ),
+                                );
+                              },
+
+                              onEdit: () async {
+                                final updated = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditJobPage(job: job),
+                                  ),
+                                );
+
+                                if (updated == true) {
+                                  setState(() => _loading = true);
+                                  _fetchJobs();
+                                }
+                              },
+
+                              onDelete: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: const Text('Delete Job'),
+                                    content: const Text('Are you sure you want to delete this job?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text(
+                                          'Delete',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (confirm == true) {
+                                  await ApiHelper.delete('/projects/${job.id}');
+                                  setState(() => _loading = true);
+                                  _fetchJobs();
+                                }
+                              },
+                            );
+                          },
+
                   ),
                 ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.work_outline, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'No jobs posted yet',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.work_outline, size: 64, color: Colors.grey),
+        const SizedBox(height: 16),
+        const Text(
+          'No jobs posted yet',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton.icon(
+          onPressed: () async {
+            // Navigate to CreateJobPage
+            final created = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreateJobPage()),
+            );
+            if (created == true) {
+              setState(() {
+                _loading = true;
+              });
+              _fetchJobs();
+            }
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('Create Job'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            textStyle: const TextStyle(fontSize: 16),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 }
 
 
@@ -99,53 +181,84 @@ class _MyJobsPageState extends State<MyJobsPage> {
 
 class _JobCard extends StatelessWidget {
   final ClientJob job;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onOpen;
 
-  const _JobCard({required this.job});
+  const _JobCard({
+    required this.job,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onOpen,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 5,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            job.title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+    return InkWell(
+      onTap: onOpen,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              blurRadius: 5,
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            job.category,
-            style: const TextStyle(color: Colors.blue),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _InfoChip(icon: Icons.payments, text: '${job.budget} DA'),
-              const SizedBox(width: 8),
-              _InfoChip(icon: Icons.location_on, text: job.location),
-              const Spacer(),
-              _StatusChip(status: job.status.name),
-            ],
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    job.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20),
+                  onPressed: onEdit,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                  onPressed: onDelete,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(job.category, style: const TextStyle(color: Colors.blue)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _InfoChip(icon: Icons.payments, text: '${job.budget} DA'),
+                const SizedBox(width: 8),
+                _InfoChip(icon: Icons.location_on, text: job.location),
+                const Spacer(),
+                              _InfoChip(icon: Icons.people, text: '${job.proposalsCount} proposals'), // <-- new
+                const SizedBox(width: 8),
+                _StatusChip(status: job.status.name),
+              ],
+            ),
+            Row(
+            
+          )
+
+          ],
+        ),
       ),
+      
+    
     );
   }
 }
