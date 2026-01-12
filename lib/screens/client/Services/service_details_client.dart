@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/chat_models.dart';
 import 'package:free_dz/models/service_model.dart';
-import 'package:free_dz/screens/shared/message.dart';
 import 'package:free_dz/models/freelancer_profile.dart';
 import 'package:free_dz/services/api_helper.dart';
+import 'package:free_dz/services/message_service.dart';
 
 class ServiceDetailsClientPage extends StatefulWidget {
   final Service service;
@@ -19,25 +19,40 @@ class ServiceDetailsClientPage extends StatefulWidget {
 
 class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
   bool _isFavorite = false;
+  bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _loadFreelancer();
-  }
+void initState() {
+  super.initState();
+  _loadFreelancer();
+}
 
   FreelancerProfile? _freelancer;
 
-Future<void> _loadFreelancer() async {
-  try {
-    final response = await ApiHelper.get('/freelancers/${widget.service.userId}');
-    setState(() {
-      _freelancer = FreelancerProfile.fromJson(response['data']);
-    });
-  } catch (e) {
-    debugPrint('Failed to load freelancer: $e');
-  }
-}
+    Future<void> _loadFreelancer() async {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final response = await ApiHelper.get(
+          '/freelancers/user/${widget.service.userId}',
+        );
+
+        setState(() {
+          _freelancer = FreelancerProfile.fromJson(response['data']);
+        });
+      } catch (e) {
+        debugPrint(
+          'Failed to load freelancer ${widget.service.userId}: $e',
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+
 
   Future<void> _toggleFavorite() async {
     try {
@@ -69,19 +84,12 @@ Future<void> _loadFreelancer() async {
   }
 
   void _messageFreelancer() {
-    final freelancer = _freelancer;
-    if (freelancer == null) return;
+  ConversationService.startConversation(
+    context: context,
+    freelancerId: widget.service.userId, // 👈 users.id
+  );
+}
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatPage(
-          conversationId: 'conv_${freelancer.id}'
-          
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,12 +97,22 @@ Future<void> _loadFreelancer() async {
     final freelancer = _freelancer;
 /*     final isDark = Theme.of(context).brightness == Brightness.dark;
  */
-    if (freelancer == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Service Details')),
-        body: const Center(child: Text('Freelancer info not available')),
-      );
-    }
+          if (_isLoading) {
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+
+      if (freelancer == null) {
+        return const Scaffold(
+          body: Center(
+            child: Text('Freelancer info not available'),
+          ),
+        );
+      }
+
 
     return Scaffold(
       appBar: AppBar(

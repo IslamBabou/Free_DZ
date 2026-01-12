@@ -455,7 +455,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
   try {
     await ApiHelper.post(
-    '/services/${service.id}',
+    '/services/${service.id}/favorite',
     {},
 );
   } catch (e) {
