@@ -139,12 +139,14 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
       }
 
       final response = await ApiHelper.post(
-        'services/${service.id}',        {},
+        '/services/${service.id}',        {},
       );
 
-      if (response['status'] == 200) {
-        if (!mounted) return;
+      if (response['is_favorited'] == false) {
+        _loadSavedServices();
+        // Successfully removed        
         
+        if (!mounted) return;
         setState(() {
           _savedServices.removeWhere((s) => s.id == service.id);
           _applyFiltersAndSort();
@@ -734,7 +736,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      service.priceRange,
+                      service.price,
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,

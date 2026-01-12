@@ -2,14 +2,19 @@
 // MODELS
 // ==========================================
 
+import '../services/api_helper.dart';
+import 'service_model.dart';
+
 class SavedService {
   final String id;
   final String serviceId;
   final String title;
   final String description;
   final String category;
-  final String priceRange;
+  final String price;
   final double rating;
+  bool isFavorited;
+
   final int reviewCount;
   final FreelancerInfo freelancer;
   final DateTime savedAt;
@@ -20,11 +25,13 @@ class SavedService {
     required this.title,
     required this.description,
     required this.category,
-    required this.priceRange,
+    required this.price,
     required this.rating,
     required this.reviewCount,
     required this.freelancer,
     required this.savedAt,
+    required this.isFavorited,
+
   });
 
   factory SavedService.fromJson(Map<String, dynamic> json) {
@@ -34,14 +41,36 @@ class SavedService {
       title: json['title'] ?? json['serviceName'] ?? '',
       description: json['description'] ?? '',
       category: json['category'] ?? 'General',
-      priceRange: json['priceRange'] ?? json['price'] ?? 'Contact for price',
+      price: json['Price'] ?? json['price'] ?? 'Contact for price',
       rating: (json['rating'] ?? 0.0).toDouble(),
+      isFavorited: json['is_favorited'] == true,
       reviewCount: json['reviewCount'] ?? json['reviews'] ?? 0,
       freelancer: FreelancerInfo.fromJson(json['freelancer'] ?? {}),
       savedAt: DateTime.parse(json['savedAt'] ?? DateTime.now().toIso8601String()),
     );
   }
 }
+
+extension SavedServiceExtension on SavedService {
+  
+  Future<Service> toFullService() async {
+    
+    final data = await ApiHelper.get('/services/$id');
+    
+
+    return Service.fromJson(data);
+  }
+}
+
+
+
+
+
+
+
+
+
+
 
 class FreelancerInfo {
   final String id;

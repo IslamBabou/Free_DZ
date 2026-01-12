@@ -3,7 +3,7 @@ import 'package:free_dz/models/client_home_page.dart' hide Service;
 import 'package:free_dz/models/service_model.dart';
 import 'package:free_dz/screens/client/jobs/freelancers.dart';
 import 'package:free_dz/screens/client/jobs/my_jobs.dart';
-import 'package:free_dz/screens/client/Services/services.dart';
+import 'package:free_dz/screens/client/services/services.dart';
 import "client_profile.dart";
 import 'package:free_dz/services/api_helper.dart';
 import "../shared/chat_list.dart";
@@ -334,107 +334,139 @@ class _ClientHomePageState extends State<ClientHomePage> {
   }
 
   Widget _buildServiceCard(Service service, bool isDark) {
-    return GestureDetector(
-      onTap: () {
-        debugPrint('View service: ${service.title}');
-        Navigator.pushNamed(
-          context,
-          '/service_details_client',
-          arguments: service,
-        );
-      },
-      child: Container(
-        width: 280,
-        margin: const EdgeInsets.only(right: 16),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+  return Stack(
+    children: [
+      GestureDetector(
+        onTap: () async {
+          Navigator.pushNamed(
+            context,
+            '/service_details_client',
+            arguments: service,
+          );
+        },
+        child: Container(
+          width: 280,
+          margin: const EdgeInsets.only(right: 16),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title
-              Text(
-                service.title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  service.title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-
-              // Description
-              Text(
-                service.description,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                  height: 1.4,
+                const SizedBox(height: 8),
+                Text(
+                  service.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const Spacer(),
-
-              // Bottom row with category, price, and status
-              Row(
-                children: [
-                  // Category chip
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: Colors.blue.withOpacity(0.3),
+                const Spacer(),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        service.category,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      service.category,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.blue,
+                    const Spacer(),
+                    Text(
+                      '${service.price} DA',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
-                  ),
-                  const Spacer(),
-
-                  // Price
-                  Text(
-                    '${service.price.toStringAsFixed(2)} ',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
+
+      // ❤️ Favorite Button
+      Positioned(
+        top: 10,
+        right: 10,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(30),
+          onTap: () => _toggleServiceFavorite(service),
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              service.isFavorited
+                  ? Icons.favorite
+                  : Icons.favorite_border,
+              size: 18,
+              color: service.isFavorited
+                  ? Colors.redAccent
+                  : Colors.white,
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+  Future<void> _toggleServiceFavorite(Service service) async {
+  final previous = service.isFavorited;
+
+  // Optimistic update
+  setState(() {
+    service.isFavorited = !service.isFavorited;
+  });
+
+  try {
+    await ApiHelper.post(
+    '/services/${service.id}',
+    {},
+);
+  } catch (e) {
+    // rollback on error
+    setState(() {
+      service.isFavorited = previous;
+    });
+
+    debugPrint('Toggle favorite failed: $e');
   }
+}
 
   Widget _buildFeaturedFreelancers(bool isDark) {
     if (_featuredFreelancers.isEmpty) {

@@ -47,6 +47,7 @@ extension ServiceStatusExtension on ServiceStatus {
 
 class Service {
   final String id;
+  final String serviceId;
   final String userId;
   final String title;
   final String description;
@@ -54,9 +55,11 @@ class Service {
   final double price;
   final ServiceStatus status;
   final FreelancerProfile? freelancer;
+  bool isFavorited;
 
   Service({
     required this.id,
+    required this.serviceId,
     required this.userId,
     required this.title,
     required this.description,
@@ -64,11 +67,14 @@ class Service {
     required this.price,
     required this.status,
     this.freelancer,
+    this.isFavorited = false,
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
   return Service(
     id: json['id'].toString(),
+    serviceId: json['serviceId'].toString(),
+
     userId: json['user_id'].toString(),
     title: json['title'] ?? '',
     description: json['description'] ?? '',
@@ -80,6 +86,8 @@ class Service {
     freelancer: json['freelancer'] != null
         ? FreelancerProfile.fromJson(json['freelancer'])
         : null,
+    isFavorited: json['is_favorited'] == true,
+
   );
 }
 
@@ -95,6 +103,7 @@ class Service {
   }) {
     return Service(
       id: id ?? this.id,
+      serviceId: serviceId,
       userId: userId ?? this.userId,
       title: title ?? this.title,
       description: description ?? this.description,
@@ -102,6 +111,7 @@ class Service {
       price: price ?? this.price,
       status: status ?? this.status,
       freelancer: freelancer ?? this.freelancer,
+      isFavorited: isFavorited,
     );
   }
 

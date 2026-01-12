@@ -19,12 +19,16 @@ class _AllServicesScreenState extends State<AllServicesScreen> {
 
   final List<String> _categories = [
     'All',
-    'Design',
-    'Development',
-    'Writing',
-    'Marketing',
-    'Video',
-    'Music',
+    'UI/UX Design',
+    'Web Development',
+    'Mobile Development',
+    'Graphic Design',
+    'Content Writing',
+    'Digital Marketing',
+    'Video Editing',
+    'Translation',
+    'Data Entry',
+    'Other',
   ];
 
   @override

@@ -13,10 +13,31 @@ class ServiceDetailsClientPage extends StatefulWidget {
   @override
   State<ServiceDetailsClientPage> createState() =>
       _ServiceDetailsClientPageState();
+      
 }
+
 
 class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
   bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFreelancer();
+  }
+
+  FreelancerProfile? _freelancer;
+
+Future<void> _loadFreelancer() async {
+  try {
+    final response = await ApiHelper.get('/freelancers/${widget.service.userId}');
+    setState(() {
+      _freelancer = FreelancerProfile.fromJson(response['data']);
+    });
+  } catch (e) {
+    debugPrint('Failed to load freelancer: $e');
+  }
+}
 
   Future<void> _toggleFavorite() async {
     try {
@@ -25,7 +46,7 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
       } else {
         await ApiHelper.post('/favorites', {'service_id': widget.service.id});
       }
-
+      
       setState(() {
         _isFavorite = !_isFavorite;
       });
@@ -48,7 +69,7 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
   }
 
   void _messageFreelancer() {
-    final freelancer = widget.service.freelancer;
+    final freelancer = _freelancer;
     if (freelancer == null) return;
 
     Navigator.push(
@@ -65,7 +86,7 @@ class _ServiceDetailsClientPageState extends State<ServiceDetailsClientPage> {
   @override
   Widget build(BuildContext context) {
     final service = widget.service;
-    final freelancer = service.freelancer;
+    final freelancer = _freelancer;
 /*     final isDark = Theme.of(context).brightness == Brightness.dark;
  */
     if (freelancer == null) {
@@ -202,3 +223,5 @@ extension FreelancerProfileExtension on FreelancerProfile {
     );
   }
 }
+
+

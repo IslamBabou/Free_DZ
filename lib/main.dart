@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/screens/client/Services/service_details_client.dart';
 import 'package:free_dz/screens/client/client_home_page.dart';
 import 'package:free_dz/screens/freelancers/free_main.dart';
 import 'package:free_dz/screens/freelancers/freelancers_services.dart';
 import 'package:free_dz/services/theme_provider.dart';
+import 'package:free_dz/models/service_model.dart';
 import 'screens/shared/login_page.dart';
 import 'screens/shared/register_page.dart';
 import 'screens/client/client_profile.dart';
@@ -112,8 +114,14 @@ class FreeDzApp extends StatelessWidget {
             builder: (_) => FreelancerProfileSetupPage(),
           );
         }
-        return null;
-      },
+        if (settings.name == '/service_details_client') {
+          final service = settings.arguments as Service;
+          return MaterialPageRoute(
+            builder: (context) => ServiceDetailsClientPage(service: service),
+          );
+      }
+              return null;
+}
     );
   }
 }
