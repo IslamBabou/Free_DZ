@@ -117,7 +117,7 @@ class _ClientProfilePageState extends State<ClientProfilePage> {
         "location": _locationController.text.trim(),
       };
 
-      final data = await ApiHelper.post('/client/profile/update', body);
+      final data = await ApiHelper.put('/client/profile', body);
 
       if (data['status'] == 200 && data['profile'] != null) {
         _profile = ClientProfile.fromJson(data['profile']);
