@@ -47,8 +47,7 @@ extension ServiceStatusExtension on ServiceStatus {
 
 class Service {
   final String id;
-  final String serviceId;
-  final String userId;
+  final String userId; // freelancer user id
   final String title;
   final String description;
   final String category;
@@ -59,7 +58,6 @@ class Service {
 
   Service({
     required this.id,
-    required this.serviceId,
     required this.userId,
     required this.title,
     required this.description,
@@ -73,8 +71,6 @@ class Service {
   factory Service.fromJson(Map<String, dynamic> json) {
   return Service(
     id: json['id'].toString(),
-    serviceId: json['serviceId'].toString(),
-
     userId: json['user_id'].toString(),
     title: json['title'] ?? '',
     description: json['description'] ?? '',
@@ -82,14 +78,16 @@ class Service {
     price: json['price'] != null
         ? double.tryParse(json['price'].toString()) ?? 0.0
         : 0.0,
-    status: ServiceStatusExtension.fromString(json['status'] ?? 'inactive'),
-    freelancer: json['freelancer'] != null
-        ? FreelancerProfile.fromJson(json['freelancer'])
+    status: ServiceStatusExtension.fromString(
+      json['status'] ?? 'inactive',
+    ),
+    freelancer: json['user'] != null
+        ? FreelancerProfile.fromJson(json['user'])
         : null,
     isFavorited: json['is_favorited'] == true,
-
   );
 }
+
 
   Service copyWith({
     String? id,
@@ -100,10 +98,10 @@ class Service {
     double? price,
     ServiceStatus? status,
     FreelancerProfile? freelancer,
+    bool? isFavorited,
   }) {
     return Service(
       id: id ?? this.id,
-      serviceId: serviceId,
       userId: userId ?? this.userId,
       title: title ?? this.title,
       description: description ?? this.description,
@@ -111,20 +109,7 @@ class Service {
       price: price ?? this.price,
       status: status ?? this.status,
       freelancer: freelancer ?? this.freelancer,
-      isFavorited: isFavorited,
+      isFavorited: isFavorited ?? this.isFavorited,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'user_id': userId,
-      'title': title,
-      'description': description,
-      'category': category,
-      'price': price,
-      'status': status.toString().split('.').last,
-      'freelancer': freelancer?.toJson(),
-    };
   }
 }

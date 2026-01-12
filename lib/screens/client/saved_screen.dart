@@ -139,7 +139,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
       }
 
       final response = await ApiHelper.post(
-        '/services/${service.id}',        {},
+        '/services/${service.id}/favorite',        {},
       );
 
       if (response['is_favorited'] == false) {
