@@ -268,6 +268,8 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget _buildConversationTile(Conversation conversation, bool isDark) {
     return InkWell(
       onTap: () => _openChat(conversation),
+      onLongPress: () => _confirmDeleteConversation(conversation),
+
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -408,4 +410,52 @@ class _ChatListPageState extends State<ChatListPage> {
       return '${time.day}/${time.month}/${time.year}';
     }
   }
+  
+void _confirmDeleteConversation(Conversation conversation) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Delete Conversation'),
+        content: const Text('Are you sure you want to delete this conversation?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteConversation(conversation);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _deleteConversation(Conversation conversation) async {
+  try {
+    final response = await ApiHelper.delete('/conversations/${conversation.id}');
+    
+    if (response['status'] == true) {
+      setState(() {
+        _conversations.remove(conversation);
+        _filteredConversations.remove(conversation);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Conversation deleted')),
+      );
+    } else {
+      throw Exception(response['message'] ?? 'Failed to delete conversation');
+    }
+  } catch (e) {
+    debugPrint('Error deleting conversation: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Failed to delete conversation')),
+    );
+  }
+}
 }

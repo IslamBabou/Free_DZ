@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:free_dz/models/chat_models.dart';
 import 'package:free_dz/services/api_helper.dart';
+import 'package:free_dz/services/auth_service.dart'; // Add this import
 import 'dart:async';
 
 // ==========================================
-// CHAT PAGE - IMPROVED
+// CHAT PAGE - WITH AUTH SERVICE INTEGRATION
 // ==========================================
 
 class ChatPage extends StatefulWidget {
@@ -40,7 +41,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
   
-  // Current user ID - inferred from messages
+  // Current user ID - from auth service
   String? _currentUserId;
   
   // Rate limiting
@@ -51,7 +52,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   Timer? _messagePollingTimer;
   
   // Typing indicator
-  bool _isTyping = false;
   Timer? _typingTimer;
   
   // Connectivity
@@ -59,11 +59,10 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
 
   @override
   void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initializeChat();
-    _setupMessageListener();
-  }
+  super.initState();
+  WidgetsBinding.instance.addObserver(this);
+  _initializeChat();
+}
 
   @override
   void dispose() {
@@ -83,23 +82,36 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     }
   }
 
-  void _setupMessageListener() {
-    _messageController.addListener(() {
-      if (_messageController.text.isNotEmpty && !_isTyping) {
-        setState(() => _isTyping = true);
-      }
-      
-      _typingTimer?.cancel();
-      _typingTimer = Timer(const Duration(seconds: 2), () {
-        if (mounted) setState(() => _isTyping = false);
+  // Load current user ID from auth service
+  Future<void> _loadCurrentUserId() async {
+    try {
+      // Get current user ID from auth service
+      final userId = await AuthService.getCurrentUserId();
+      debugPrint('current user: $userId');
+      setState(() {
+        _currentUserId = userId;
       });
-    });
+    } catch (e) {
+      debugPrint('Error loading current user ID: $e');
+      // Fallback: will be inferred from messages
+    }
   }
 
+  
+
   Future<void> _initializeChat() async {
+  // Load current user ID first
+  await _loadCurrentUserId();
+
+  // Only load messages if _currentUserId is not null
+  if (_currentUserId != null) {
     await _loadConversation();
     _startMessagePolling();
+  } else {
+    _showSnackBar('Failed to load user. Cannot show messages.', isError: true);
   }
+}
+
 
   void _startMessagePolling() {
     _messagePollingTimer?.cancel();
@@ -135,8 +147,13 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         _peerAvatarUrl = parsedData.peerAvatarUrl;
         _isOnline = parsedData.isOnline;
         _lastSeen = parsedData.lastSeen;
-        _currentUserId = parsedData.currentUserId;
         _isBlocked = parsedData.isBlocked;
+        
+        // Update current user ID from API if available
+        if (parsedData.currentUserId != null) {
+          _currentUserId = parsedData.currentUserId;
+        }
+        
         _isLoading = false;
         _isConnected = true;
       });
@@ -207,32 +224,18 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
         .toList()
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
-    // Infer current user ID and peer info from messages if not available
-    if (messages.isNotEmpty) {
-      // Try to infer current user ID from message pattern
-      if (currentUserId == null) {
-        final senderIds = messages.map((m) => m.senderId).toSet();
-        if (senderIds.length == 2) {
-          // In a conversation, find the ID that appears most as sender
-          final senderCounts = <String, int>{};
-          for (final msg in messages) {
-            senderCounts[msg.senderId] = (senderCounts[msg.senderId] ?? 0) + 1;
-          }
-          // Assume current user is the one who sent messages most recently
-          currentUserId = messages.last.senderId;
-        } else if (senderIds.length == 1) {
-          // Only one person sent messages (likely current user)
-          currentUserId = senderIds.first;
-        }
-      }
+    // Fallback: Infer current user ID from messages if still not available
+    if (currentUserId == null && _currentUserId == null && messages.isNotEmpty) {
+      // Assume current user is the one who sent the most recent message
+      currentUserId = messages.last.senderId;
+    }
 
-      // Extract peer info from first message if still not available
-      if (peerName.isEmpty) {
-        final firstMsg = messages.first;
-        peerName = firstMsg.senderRole == 'FREELANCER' 
-            ? (firstMsg.content.split(':').first) 
-            : 'Unknown';
-      }
+    // Extract peer info from first message if still not available
+    if (peerName.isEmpty && messages.isNotEmpty) {
+      final firstMsg = messages.first;
+      peerName = firstMsg.senderRole == 'FREELANCER' 
+          ? (firstMsg.content.split(':').first) 
+          : 'Unknown';
     }
 
     return _ConversationData(
@@ -249,6 +252,12 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   Future<void> _sendMessage() async {
     final content = _messageController.text.trim();
     if (content.isEmpty || _isSending || _isBlocked) {
+      return;
+    }
+
+    // Ensure we have a current user ID
+    if (_currentUserId == null) {
+      _showSnackBar('Unable to send message. Please try again.', isError: true);
       return;
     }
 
@@ -279,14 +288,11 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
     _messageController.clear();
     _focusNode.unfocus();
 
-    // Infer current user ID if not available
-    final userId = _currentUserId ?? 'temp_user';
-
     // Optimistic UI update
     final tempMessage = ChatMessage(
       id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
       conversationId: widget.conversationId,
-      senderId: userId,
+      senderId: _currentUserId!,
       senderRole: 'CLIENT',
       content: sanitizedContent,
       timestamp: DateTime.now(),
@@ -318,11 +324,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
       setState(() {
         _messages.removeWhere((m) => m.id == tempMessage.id);
         _messages.add(sentMessage);
-        
-        // Update current user ID from sent message
-        if (_currentUserId == null || _currentUserId == 'temp_user') {
-          _currentUserId = sentMessage.senderId;
-        }
       });
       
       _scrollToBottom();
@@ -592,7 +593,7 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
   void _onMessageLongPress(ChatMessage message) {
     HapticFeedback.mediumImpact();
     
-    final isMe = message.senderId == _currentUserId;
+    final isMe = message.senderId.toString() == _currentUserId.toString();
     
     showModalBottomSheet(
       context: context,
@@ -1141,7 +1142,6 @@ class _ChatPageState extends State<ChatPage> with WidgetsBindingObserver {
                       horizontal: 20,
                       vertical: 12,
                     ),
-                    
                   ),
                   onSubmitted: (_) => _sendMessage(),
                 ),

@@ -1,6 +1,5 @@
 
 // models/service_model.dart
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -54,7 +53,10 @@ class Service {
   final double price;
   final ServiceStatus status;
   final FreelancerProfile? freelancer;
+  final double rating;
+
   bool isFavorited;
+  final DateTime savedAt;
 
   Service({
     required this.id,
@@ -64,11 +66,16 @@ class Service {
     required this.category,
     required this.price,
     required this.status,
+    required this.rating,
     this.freelancer,
+    required this.savedAt,
     this.isFavorited = false,
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
+  final user = json['user'];
+  final freelancerJson = user != null ? user['freelancer_profile'] : null;
+
   return Service(
     id: json['id'].toString(),
     userId: json['user_id'].toString(),
@@ -78,15 +85,20 @@ class Service {
     price: json['price'] != null
         ? double.tryParse(json['price'].toString()) ?? 0.0
         : 0.0,
-    status: ServiceStatusExtension.fromString(
-      json['status'] ?? 'inactive',
-    ),
-    freelancer: json['user'] != null
-        ? FreelancerProfile.fromJson(json['user'])
+    rating: freelancerJson?['rating'] != null
+        ? double.tryParse(freelancerJson['rating'].toString()) ?? 0.0
+        : 0.0,
+    status: ServiceStatusExtension.fromString(json['status'] ?? 'inactive'),
+    freelancer: freelancerJson != null
+        ? FreelancerProfile.fromJson(freelancerJson)
         : null,
     isFavorited: json['is_favorited'] == true,
+    savedAt: json['pivot']?['created_at'] != null
+        ? DateTime.parse(json['pivot']['created_at'])
+        : DateTime.now(),
   );
 }
+
 
 
   Service copyWith({
@@ -109,7 +121,10 @@ class Service {
       price: price ?? this.price,
       status: status ?? this.status,
       freelancer: freelancer ?? this.freelancer,
+      rating: rating,
+      savedAt: savedAt,
       isFavorited: isFavorited ?? this.isFavorited,
     );
   }
 }
+enum SortOption { newest, oldest, priceHighToLow, priceLowToHigh, rating }

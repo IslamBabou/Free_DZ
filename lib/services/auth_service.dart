@@ -14,14 +14,17 @@ class AuthService {
 
   static Future<void> logout() async {
     await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _userIdKey);
   }
 
   // Store current user ID (from login response)
   static String? _currentUserId;
+  static const _userIdKey = 'user_id';
 
   // Call this when user logs in
-  static void setCurrentUserId(String userId) {
+  static Future<void> setCurrentUserId(String userId) async {
     _currentUserId = userId;
+    await _storage.write(key: _userIdKey, value: userId);
   }
 
   // Get the current logged-in user ID
@@ -31,5 +34,11 @@ class AuthService {
   static Future<bool> isLoggedIn() async {
     final token = await getToken();
     return token != null;
+  }
+
+  static Future<dynamic> getCurrentUserId() async {
+      _currentUserId = await _storage.read(key: _userIdKey);
+      return _currentUserId;
+
   }
 }

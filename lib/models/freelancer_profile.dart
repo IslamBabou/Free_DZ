@@ -51,7 +51,7 @@ class FreelancerProfile {
     professionalTitle: json['professional_title'] ?? '',
     location: json['location'] ?? '',
     avatarUrl: json['avatar_url'],
-    hourlyRate: (json['hourlyRate'] ?? 0).toDouble(),
+    hourlyRate: (json['hourlyRate'] ?? 0).toInt(),
     isOnline: json['is_online'] ?? false,
     isVerified: json['is_verified'] ?? false,
     rating: (json['rating'] ?? 0).toDouble(),
