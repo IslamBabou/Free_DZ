@@ -47,6 +47,11 @@ class _LoginPageState extends State<LoginPage> {
         debugPrint('Token saved: $token');
       }
 
+      final userId = response['user']['id'].toString();
+      await AuthService.setCurrentUserId(userId);
+
+
+
       // Extract user role and profile completion
       final userRole = response['user']?['role'] ?? response['role'];
       final isProfileComplete = response['user']?['is_profile_complete'] ??

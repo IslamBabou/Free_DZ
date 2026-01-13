@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:free_dz/models/saved_services.dart';
+import 'package:free_dz/models/service_model.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 
@@ -18,8 +18,8 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
   // State
   bool _isLoading = true;
   bool _hasError = false;
-  List<SavedService> _savedServices = [];
-  List<SavedService> _filteredServices = [];
+  List<Service> _savedServices = [];
+  List<Service> _filteredServices = [];
   String? _selectedCategory;
   SortOption _sortOption = SortOption.newest;
 
@@ -48,11 +48,11 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
 
     try {
       final response = await ApiHelper.get('/services/favorites');
+      debugPrint('Saved services data: $response');
 
       if (response['status'] == 200) {
         final List<dynamic> data = response['data'];
-        debugPrint('Saved services data: $data');
-        _savedServices = data.map((json) => SavedService.fromJson(json)).toList();
+        _savedServices = data.map((json) => Service.fromJson(json)).toList();
         _applyFiltersAndSort();
         
         if (!mounted) return;
@@ -105,7 +105,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     }
   }
 
-  Future<void> _removeService(SavedService service) async {
+  Future<void> _removeService(Service service) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -192,10 +192,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     // TODO: Navigate to search/explore screen
   }
 
-  void _viewServiceDetails(SavedService service) {
-    debugPrint('View service details: ${service.title}');
-    // TODO: Navigate to service details screen
-  }
+  
 
   void _showFilterDialog() {
     showModalBottomSheet(
@@ -576,9 +573,15 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     );
   }
 
-  Widget _buildServiceCard(SavedService service, bool isDark) {
+  Widget _buildServiceCard(Service service, bool isDark) {
     return GestureDetector(
-      onTap: () => _viewServiceDetails(service),
+      onTap: () async {
+          Navigator.pushNamed(
+            context,
+            '/service_details_client',
+            arguments: service,
+          );
+        },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
@@ -604,10 +607,10 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: Colors.blue.shade100,
-                    child: service.freelancer.avatarUrl != null
+                    child: service.freelancer?.avatarUrl != null
                         ? ClipOval(
                             child: Image.network(
-                              service.freelancer.avatarUrl!,
+                              service.freelancer!.avatarUrl!,
                               width: 48,
                               height: 48,
                               fit: BoxFit.cover,
@@ -625,7 +628,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          service.freelancer.name,
+                          service.freelancer?.fullName ?? 'Unknown Freelancer',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -715,14 +718,6 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                           color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '(${service.reviewCount})',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
                     ],
                   ),
                   // Price
@@ -736,7 +731,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      service.price,
+                      '${service.price} DA',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
