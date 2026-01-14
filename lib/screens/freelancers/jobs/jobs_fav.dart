@@ -1,106 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/models/fav_job.dart';
 import 'package:free_dz/screens/freelancers/jobs/jobs_details.dart';
 import 'package:free_dz/services/api_helper.dart';
-import 'package:free_dz/models/jobs.dart';
 
-
-// ==========================================
-// JOBS PAGE
-// ==========================================
-
-class JobsPage extends StatefulWidget {
-  const JobsPage({super.key});
+class FavoriteJobsPage extends StatefulWidget {
+  const FavoriteJobsPage({super.key});
 
   @override
-  State<JobsPage> createState() => _JobsPageState();
+  State<FavoriteJobsPage> createState() => _FavoriteJobsPageState();
 }
 
-class _JobsPageState extends State<JobsPage> {
-  bool _isLoading = true;
-  bool _hasError = false;
-  List<Job> _jobs = [];
-  List<Job> _filteredJobs = [];
-  final _searchController = TextEditingController();
-
- @override
-void initState() {
-  super.initState();
-    _loadJobs();
-}
+class _FavoriteJobsPageState extends State<FavoriteJobsPage> {
+  List<Job> favoriteJobs = [];
+  bool isLoading = true;
+  String? errorMessage;
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadFavoriteJobs();
   }
 
-Future<void> _loadJobs() async {
-  debugPrint('Loading jobs from API...');
+  Future<void> _loadFavoriteJobs() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
 
-  setState(() {
-    _isLoading = true;
-    _hasError = false;
-  });
+    try {
+      final response = await ApiHelper.get('/favorites');
+      debugPrint('DECODED RESPONSE: $response');
 
-  try {
-    // Call your API
-    final response = await ApiHelper.get('/projects/all');
-
-    // Make sure to get the 'data' list
-    if (response != null && response['data'] is List) {
-      final List<dynamic> data = response['data'];
-
-      // Map each JSON object to a Job instance
-      final jobsList = data
-          .whereType<Map<String, dynamic>>()
-          .map<Job>((json) => Job.fromJson(json))
-          .toList();
-
-      setState(() {
-        _jobs = jobsList;
-        _filteredJobs = _jobs; // initially, filtered = all
-        _isLoading = false;
-      });
-
-      debugPrint('_jobs loaded: ${_jobs.length}');
-      for (var job in _jobs) {
-        debugPrint('Job title: ${job.title}, category: ${job.category}');
+      if (response != null && response is List) {
+        setState(() {
+          favoriteJobs = response
+              .map<Job>((json) => Job.fromJson(json))
+              .toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load favorites';
+          isLoading = false;
+        });
       }
-
-    } else {
-      debugPrint('API returned unexpected format: $response');
+    } catch (e) {
       setState(() {
-        _jobs = [];
-        _filteredJobs = [];
-        _isLoading = false;
+        errorMessage = 'An error occurred: $e';
+        isLoading = false;
       });
     }
-  } catch (e) {
-    debugPrint('Error loading jobs: $e');
-    setState(() {
-      _jobs = [];
-      _filteredJobs = [];
-      _isLoading = false;
-      _hasError = true;
-    });
   }
-}
 
+  Future<void> _removeFavorite(String jobId) async {
+    try {
+      await ApiHelper.delete('/favorites/$jobId');
 
-  
+      setState(() {
+        favoriteJobs.removeWhere((job) => job.id.toString() == jobId);
+      });
 
-  void _searchJobs(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredJobs = _jobs;
-      } else {
-        _filteredJobs = _jobs.where((job) {
-          return job.title.toLowerCase().contains(query.toLowerCase()) ||
-                 job.description.toLowerCase().contains(query.toLowerCase()) ||
-                 job.category.toLowerCase().contains(query.toLowerCase());
-        }).toList();
-      }
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Removed from favorites'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to remove: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -113,7 +88,6 @@ Future<void> _loadJobs() async {
         child: Column(
           children: [
             _buildHeader(isDark),
-            _buildSearchBar(isDark),
             Expanded(
               child: _buildJobsList(isDark),
             ),
@@ -143,7 +117,7 @@ Future<void> _loadJobs() async {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Available Jobs',
+                'Favorite Jobs',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -151,7 +125,7 @@ Future<void> _loadJobs() async {
                 ),
               ),
               Text(
-                'Find your next project',
+                'Your saved opportunities',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -159,19 +133,16 @@ Future<void> _loadJobs() async {
               ),
             ],
           ),
-          IconButton(
-            onPressed: () {
-              // TODO: Navigate to filters
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Filters coming soon'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            icon: const Icon(Icons.tune),
-            style: IconButton.styleFrom(
-              backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red.withAlpha(26),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.favorite,
+              color: Colors.red,
+              size: 24,
             ),
           ),
         ],
@@ -179,44 +150,12 @@ Future<void> _loadJobs() async {
     );
   }
 
-  Widget _buildSearchBar(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: isDark ? const Color(0xFF121212) : Colors.grey.shade50,
-      child: TextField(
-        controller: _searchController,
-        onChanged: _searchJobs,
-        decoration: InputDecoration(
-          hintText: 'Search jobs...',
-          hintStyle: TextStyle(color: Colors.grey.shade500),
-          prefixIcon: Icon(Icons.search, color: Colors.grey.shade500),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  onPressed: () {
-                    _searchController.clear();
-                    _searchJobs('');
-                  },
-                  icon: Icon(Icons.clear, color: Colors.grey.shade500),
-                )
-              : null,
-          filled: true,
-          fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
-      ),
-    );
-  }
-
   Widget _buildJobsList(bool isDark) {
-    if (_isLoading) {
+    if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_hasError) {
+    if (errorMessage != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -224,12 +163,18 @@ Future<void> _loadJobs() async {
             Icon(Icons.error_outline, size: 64, color: Colors.orange.shade400),
             const SizedBox(height: 16),
             const Text(
-              'Failed to load jobs',
+              'Failed to load favorites',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              errorMessage!,
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: _loadJobs,
+              onPressed: _loadFavoriteJobs,
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
             ),
@@ -238,15 +183,15 @@ Future<void> _loadJobs() async {
       );
     }
 
-    if (_filteredJobs.isEmpty) {
+    if (favoriteJobs.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.work_outline, size: 100, color: Colors.grey.shade400),
+            Icon(Icons.favorite_border, size: 100, color: Colors.grey.shade400),
             const SizedBox(height: 24),
             Text(
-              _searchController.text.isEmpty ? 'No jobs available' : 'No results found',
+              'No favorite jobs yet',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -255,9 +200,7 @@ Future<void> _loadJobs() async {
             ),
             const SizedBox(height: 12),
             Text(
-              _searchController.text.isEmpty
-                  ? 'Check back later for new opportunities'
-                  : 'Try searching with different keywords',
+              'Start adding jobs to your favorites!',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),
@@ -267,30 +210,62 @@ Future<void> _loadJobs() async {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadJobs,
+      onRefresh: _loadFavoriteJobs,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _filteredJobs.length,
+        itemCount: favoriteJobs.length,
         itemBuilder: (context, index) {
-          return JobCard(job: _filteredJobs[index], isDark: isDark);
+          return FavoriteJobCard(
+            job: favoriteJobs[index],
+            isDark: isDark,
+            onRemove: () => _showRemoveDialog(favoriteJobs[index]),
+          );
         },
+      ),
+    );
+  }
+
+  void _showRemoveDialog(Job job) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove from Favorites'),
+        content: Text('Are you sure you want to remove "${job.title}" from your favorites?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _removeFavorite(job.id.toString());
+            },
+            child: const Text(
+              'Remove',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 // ==========================================
-// JOB CARD WIDGET
+// FAVORITE JOB CARD WIDGET
 // ==========================================
 
-class JobCard extends StatelessWidget {
+class FavoriteJobCard extends StatelessWidget {
   final Job job;
   final bool isDark;
+  final VoidCallback onRemove;
 
-  const JobCard({
+  const FavoriteJobCard({
     super.key,
     required this.job,
     required this.isDark,
+    required this.onRemove,
   });
 
   @override
@@ -332,7 +307,19 @@ class JobCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _buildCategoryChip(),
+                    Row(
+                      children: [
+                        _buildCategoryChip(),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: onRemove,
+                          icon: const Icon(Icons.favorite, color: Colors.red),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          iconSize: 24,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -342,16 +329,6 @@ class JobCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       job.clientName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 6),
-                    Text(
-                      _formatDate(job.postedDate),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade600,
@@ -414,35 +391,22 @@ class JobCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${job.proposalsCount} proposals',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => JobDetailsPage(jobId: job.id.toString()),
                       ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => JobDetailsPage(jobId: job.id ),
-                            ),
-                          );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('View Details'),
-                    ),
-                  ],
+                  ),
+                  child: const Text('View Details'),
                 ),
               ],
             ),
@@ -489,20 +453,5 @@ class JobCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
   }
 }

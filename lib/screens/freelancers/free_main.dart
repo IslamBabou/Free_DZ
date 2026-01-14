@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'package:free_dz/screens/freelancers/freelancers_services.dart';
 import 'package:free_dz/screens/freelancers/jobs/jobs.dart';
+import 'package:free_dz/screens/freelancers/jobs/jobs_fav.dart';
 
 
 import 'free_home.dart';
@@ -27,6 +28,7 @@ class _FreelancerMainScreenState extends State<FreelancerMainScreen> {
   final _pageController = PageController(initialPage: 0);
   final _controller = NotchBottomBarController(index: 0);
   
+  // ignore: unused_field
   int _currentIndex = 0;
 
   @override
@@ -81,8 +83,9 @@ class _FreelancerMainScreenState extends State<FreelancerMainScreen> {
   final List<Widget> _pages = [
     
     const FreelancerHomePage(),
-    const JobsPage(),
     const ChatListPage(),
+    const FavoriteJobsPage(),
+    const JobsPage(),
     const FreelancerServicesPage(),
   ];
 
@@ -128,17 +131,6 @@ class _FreelancerMainScreenState extends State<FreelancerMainScreen> {
           ),
           BottomBarItem(
             inActiveItem: Icon(
-              Icons.work_outline,
-              color: Colors.grey,
-            ),
-            activeItem: Icon(
-              Icons.work,
-              color: Colors.white,
-            ),
-            itemLabel: 'Jobs',
-          ),
-          BottomBarItem(
-            inActiveItem: Icon(
               Icons.chat_bubble_outline,
               color: Colors.grey,
             ),
@@ -148,6 +140,29 @@ class _FreelancerMainScreenState extends State<FreelancerMainScreen> {
             ),
             itemLabel: 'Messages',
           ),
+          BottomBarItem(
+            inActiveItem: Icon(
+              Icons.favorite_border_outlined,
+              color: Colors.grey,
+            ),
+            activeItem: Icon(
+              Icons.favorite,
+              color: Colors.grey,
+            ),
+            itemLabel: "Favorite",
+            ),
+          BottomBarItem(
+            inActiveItem: Icon(
+              Icons.work_outline,
+              color: Colors.grey,
+            ),
+            activeItem: Icon(
+              Icons.work,
+              color: Colors.white,
+            ),
+            itemLabel: 'Jobs',
+          ),
+          
           BottomBarItem(
             inActiveItem: Icon(
               Icons.medical_services_outlined,

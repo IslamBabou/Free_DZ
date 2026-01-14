@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/free_home.dart';
 import 'package:free_dz/screens/freelancers/free_setup.dart';
+import 'package:free_dz/screens/freelancers/jobs/jobs_details.dart';
 import 'package:free_dz/screens/freelancers/notifications_page.dart';
 import 'package:free_dz/screens/freelancers/profile.dart';
 import 'package:free_dz/services/api_helper.dart';
-import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
-import 'dart:async';
 
 // ==========================================
 // FREELANCER HOME PAGE
@@ -24,23 +23,25 @@ class FreelancerHomePage extends StatefulWidget {
 }
 
 class _FreelancerHomePageState extends State<FreelancerHomePage> {
-  // State
+  // Dashboard
   bool _isLoading = true;
   bool _hasError = false;
-  
-  // Dashboard data
   int _completedJobs = 0;
-  List<Job> _availableJobs = [];
   int _unreadNotifications = 0;
 
-  // Bottom Bar Controller
-  final _pageController = PageController(initialPage: 0);
-  final NotchBottomBarController _bottomBarController = NotchBottomBarController(index: 0);
+  // Jobs
+  bool _jobsLoading = false;
+  bool _jobsError = false;
+  List<Job> _availableJobs = [];
+
+  final PageController _pageController = PageController();
+
 
   @override
   void initState() {
     super.initState();
     _loadDashboardData();
+    _loadAvailableJobs();
   }
 
   @override
@@ -49,6 +50,10 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     super.dispose();
   }
 
+  // ==========================================
+  // API CALLS
+  // ==========================================
+
   Future<void> _loadDashboardData() async {
     setState(() {
       _isLoading = true;
@@ -56,76 +61,93 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     });
 
     try {
-      // API call using ApiHelper
       final data = await ApiHelper.get('/freelancer/profile');
-      
+
       setState(() {
         _completedJobs = data['completed_jobs'] ?? 0;
-        _unreadNotifications = data['unreadNotifications'] ?? 0;
-        _availableJobs = (data['availableJobs'] as List?)
-            ?.map((job) => Job.fromJson(job))
-            .toList() ?? [];
+        _unreadNotifications = data['unread_notifications'] ?? 0;
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading dashboard: $e');
+      debugPrint('Dashboard error: $e');
       setState(() {
-        // _hasError = true;
+        _hasError = true;
         _isLoading = false;
       });
-      }
+    }
   }
+
+  Future<void> _loadAvailableJobs() async {
+    setState(() {
+      _jobsLoading = true;
+      _jobsError = false;
+    });
+
+    try {
+      final response = await ApiHelper.get('/projects/all');
+      final List list = response['data'];
+      print('JSON received: ${response['data']}'); // <- Add this
+
+
+      setState(() {
+        _availableJobs = list.map((e) {
+          final Map<String, dynamic> json = Map<String, dynamic>.from(e);
+
+          // Normalize budget BEFORE model parsing
+          final rawBudget = json['budget'];
+          if (rawBudget is String) {
+            json['budget'] = double.tryParse(rawBudget)?.toInt() ?? 0;
+          } else if (rawBudget is double) {
+            json['budget'] = rawBudget.toInt();
+          }
+
+          return Job.fromJson(json);
+        }).toList();
+        _jobsLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Jobs error: $e');
+      setState(() {
+        _jobsError = true;
+        _jobsLoading = false;
+      });
+    }
+  }
+
+  // ==========================================
+  // NAVIGATION
+  // ==========================================
 
   void _navigateToProfileSetup() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const FreelancerProfileSetupPage(
-          isFromSkip: true,
-        ),
+        builder: (_) => const FreelancerProfileSetupPage(isFromSkip: true),
       ),
     );
   }
 
   void _navigateToNotifications() {
-      Navigator.push(
+    Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const FreelancerNotificationsPage(),
+        builder: (_) => const FreelancerNotificationsPage(),
       ),
     );
-    
   }
 
   void _navigateToProfile() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const FreelancerProfilePage(),
+        builder: (_) => const FreelancerProfilePage(),
       ),
     );
   }
 
-  void _viewJobDetails(Job job) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => _buildJobDetailsSheet(job),
-    );
-  }
-
-  void _showSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  // ==========================================
+  // UI
+  // ==========================================
 
   @override
   Widget build(BuildContext context) {
@@ -139,83 +161,48 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
         physics: const NeverScrollableScrollPhysics(),
         children: [
           _buildHomePage(isDark),
-          _buildJobsPage(isDark),
-          _buildMessagesPage(isDark),
+          _buildPlaceholder('Find Jobs', Icons.work_outline, isDark),
+          _buildPlaceholder('Messages', Icons.chat_bubble_outline, isDark),
           const FreelancerProfilePage(),
         ],
       ),
-      extendBody: true,
     );
   }
 
   PreferredSizeWidget _buildAppBar(bool isDark) {
     return AppBar(
-      automaticallyImplyLeading: false,
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       elevation: 0,
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.work, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Free_dz',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
+      title: const Text('Free_dz', style: TextStyle(fontWeight: FontWeight.bold)),
       actions: [
         Stack(
           children: [
             IconButton(
-              onPressed: _navigateToNotifications,
               icon: const Icon(Icons.notifications_outlined),
+              onPressed: _navigateToNotifications,
             ),
             if (_unreadNotifications > 0)
               Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 18,
-                    minHeight: 18,
-                  ),
+                right: 10,
+                top: 10,
+                child: CircleAvatar(
+                  radius: 8,
+                  backgroundColor: Colors.red,
                   child: Text(
                     _unreadNotifications > 9 ? '9+' : '$_unreadNotifications',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 10, color: Colors.white),
                   ),
                 ),
               ),
           ],
         ),
-        Padding(
-          padding: const EdgeInsets.only(right: 12, left: 4),
-          child: GestureDetector(
-            onTap: _navigateToProfile,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(Icons.person, color: Colors.blue, size: 20),
-            ),
+        GestureDetector(
+          onTap: _navigateToProfile,
+          child: const Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: CircleAvatar(child: Icon(Icons.person)),
           ),
         ),
-        const SizedBox(width: 8),
       ],
     );
   }
@@ -227,515 +214,99 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
 
     if (_hasError) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.orange.shade400),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to load dashboard',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _loadDashboardData,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
+        child: ElevatedButton(
+          onPressed: _loadDashboardData,
+          child: const Text('Retry'),
         ),
       );
     }
 
     return RefreshIndicator(
-      onRefresh: _loadDashboardData,
+      onRefresh: () async {
+        await _loadDashboardData();
+        await _loadAvailableJobs();
+      },
       child: ListView(
-        padding: const EdgeInsets.only(top: 16, bottom: 100),
+        padding: const EdgeInsets.only(bottom: 100),
         children: [
-          if (widget.showCompletionBanner) _buildCompletionBanner(isDark),
+          if (widget.showCompletionBanner)
+            _buildCompletionBanner(),
           _buildCompletedJobsCard(isDark),
           const SizedBox(height: 24),
           _buildAvailableJobs(isDark),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJobsPage(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.work_outline, size: 80, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            'Find Jobs',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Browse and search for jobs',
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessagesPage(bool isDark) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.chat_bubble_outline, size: 80, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            'Messages',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Your conversations with clients',
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompletionBanner(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade600, Colors.blue.shade400],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.info_outline, color: Colors.white, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Complete your profile',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Attract more clients and get hired faster',
-                  style: TextStyle(color: Colors.white, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton(
-            onPressed: _navigateToProfileSetup,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.blue.shade600,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
-            child: const Text(
-              'Complete',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompletedJobsCard(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.check_circle_outline,
-              color: Colors.green,
-              size: 32,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$_completedJobs',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Completed Jobs',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.trending_up,
-            color: Colors.green,
-            size: 32,
-          ),
         ],
       ),
     );
   }
 
   Widget _buildAvailableJobs(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Available Jobs',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  _pageController.jumpToPage(1);
-                  _bottomBarController.jumpTo(1);
-                },
-                child: const Text('See All'),
-              ),
-            ],
-          ),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Available Jobs',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        if (_availableJobs.isEmpty)
-          _buildEmptyState(isDark)
-        else
-          ..._availableJobs.take(5).map((job) => _buildJobCard(job, isDark)),
-      ],
+      ),
+      if (_jobsLoading)
+        const Center(child: CircularProgressIndicator())
+      else if (_jobsError)
+        Center(
+          child: ElevatedButton(
+            onPressed: _loadAvailableJobs,
+            child: const Text('Retry'),
+          ),
+        )
+      else if (_availableJobs.isEmpty)
+        _buildEmptyState(isDark)
+      else
+        Column(
+          children: [
+            // Show only the first 5 jobs
+            ..._availableJobs.take(5).map((job) => Column(
+                  children: [
+                    _buildJobCardWithFavorite(job, isDark),
+                    const SizedBox(height: 12), // spacing between cards
+                  ],
+                )),
+          ],
+        ),
+    ],
+  );
+}
+
+  // ==========================================
+  // COMPONENTS
+  // ==========================================
+
+  
+  Widget _buildCompletedJobsCard(bool isDark) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: ListTile(
+        leading: const Icon(Icons.check_circle_outline, color: Colors.green),
+        title: Text('$_completedJobs',
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+        subtitle: const Text('Completed Jobs'),
+      ),
     );
   }
 
   Widget _buildEmptyState(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+    return Padding(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
-        children: [
-          Icon(Icons.work_outline, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            'No jobs available right now',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Check back soon for new opportunities',
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildJobCard(Job job, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _viewJobDetails(job),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        job.title,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        job.categoryBadge,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  job.description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                    height: 1.4,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(Icons.attach_money, size: 16, color: Colors.green),
-                    const SizedBox(width: 4),
-                    Text(
-                      '\$${job.budget}',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
-                    const SizedBox(width: 4),
-                    Text(
-                      job.location,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      _formatJobTime(job.postedAt),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildJobDetailsSheet(Job job) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  job.title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Posted by ${job.clientName}',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _buildDetailChip(
-                icon: Icons.attach_money,
-                label: '\$${job.budget}',
-                color: Colors.green,
-              ),
-              const SizedBox(width: 12),
-              _buildDetailChip(
-                icon: Icons.location_on,
-                label: job.location,
-                color: Colors.blue,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Description',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            job.description,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.5,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showSnackBar('Proposal submission coming soon');
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: const Text(
-                'Submit Proposal',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailChip({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
+        children: const [
+          Icon(Icons.work_outline, size: 64, color: Colors.grey),
+          SizedBox(height: 12),
+          Text('No jobs available'),
         ],
       ),
     );
@@ -743,15 +314,132 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
 
   
 
-  String _formatJobTime(DateTime time) {
-    final difference = DateTime.now().difference(time);
-    
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return '${difference.inDays}d ago';
+  Widget _buildCompletionBanner() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: ElevatedButton(
+        onPressed: _navigateToProfileSetup,
+        child: const Text('Complete your profile'),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(String title, IconData icon, bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80, color: Colors.grey),
+          const SizedBox(height: 12),
+          Text(title, style: const TextStyle(fontSize: 24)),
+        ],
+      ),
+    );
+  }
+  
+// ==============================
+// JOB CARD WITH FAVORITE
+// ==============================
+Widget _buildJobCardWithFavorite(Job job, bool isDark) {
+  return Card(
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    child: ListTile(
+      onTap: () {
+        // Navigate to job details page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => JobDetailsPage(jobId: job.id),
+          ),
+        );
+      },
+      title: Text(job.title),
+      subtitle: Text(job.description, maxLines: 2),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('${job.budget} DA',
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: Colors.green)),
+          const SizedBox(width: 12),
+          FavoriteButton(jobId: job.id),
+        ],
+      ),
+    ),
+  );
+}
+
+}
+
+// ==============================
+// FAVORITE BUTTON WIDGET
+// ==============================
+class FavoriteButton extends StatefulWidget {
+  final String jobId;
+  const FavoriteButton({super.key, required this.jobId});
+
+  @override
+  State<FavoriteButton> createState() => _FavoriteButtonState();
+}
+
+class _FavoriteButtonState extends State<FavoriteButton> {
+  bool _isFavorite = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFavorite();
+  }
+
+  Future<void> _checkFavorite() async {
+    try {
+      final response =
+          await ApiHelper.get('/favorites/${widget.jobId}/check');
+      setState(() {
+        _isFavorite = response['isFavorited'] ?? false;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('Favorite check error: $e');
+      setState(() => _loading = false);
     }
+  }
+
+  Future<void> _toggleFavorite() async {
+    setState(() => _loading = true);
+
+    try {
+      if (_isFavorite) {
+        await ApiHelper.delete('/favorites/${widget.jobId}');
+      } else {
+        await ApiHelper.post('/favorites', {'project_id': widget.jobId});
+      }
+      setState(() {
+        _isFavorite = !_isFavorite;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('Favorite toggle error: $e');
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+    return IconButton(
+      icon: Icon(
+        _isFavorite ? Icons.favorite : Icons.favorite_border,
+        color: Colors.red,
+      ),
+      onPressed: _toggleFavorite,
+    );
   }
 }

@@ -26,7 +26,6 @@ class _MyJobsPageState extends State<MyJobsPage> {
     try {
       final response = await ApiHelper.get('/client/projects');
       final List data = response['data'];
-      print('JSON received: ${response['data']}'); // <- Add this
 
 
       _jobs = data.map((e) => ClientJob.fromJson(e)).toList();
@@ -245,7 +244,7 @@ class _JobCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 _InfoChip(icon: Icons.location_on, text: job.location),
                 const Spacer(),
-                              _InfoChip(icon: Icons.people, text: '${job.proposalsCount} proposals'), // <-- new
+                              _InfoChip(icon: Icons.people, text: '${job.proposalsCount} proposals'), 
                 const SizedBox(width: 8),
                 _StatusChip(status: job.status.name),
               ],
