@@ -1,4 +1,4 @@
-import 'service_model.dart';
+import 'service_profile.dart';
 
 // models/freelancer_portfolio.dart
 class FreelancerPortfolio {

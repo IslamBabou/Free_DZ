@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:free_dz/models/service_model.dart';
+import 'package:free_dz/models/service_profile.dart';
 import 'package:free_dz/models/profile.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/message_service.dart';
@@ -128,6 +128,8 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
             SliverAppBar(
               expandedHeight: 280,
               pinned: true,
+              elevation: 0,
+              scrolledUnderElevation: 0,
               backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               flexibleSpace: FlexibleSpaceBar(
                 background: _buildHeader(isDark),
@@ -137,13 +139,15 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
         },
         body: Column(
           children: [
-            Container(
+            Material(
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              elevation: 0,
               child: TabBar(
                 controller: _tabController,
                 labelColor: isDark ? Colors.white : Colors.black87,
                 unselectedLabelColor: Colors.grey.shade600,
                 indicatorColor: Theme.of(context).colorScheme.primary,
+                dividerColor: Colors.transparent,
                 tabs: const [
                   Tab(text: 'About'),
                   Tab(text: 'Services'),
@@ -247,7 +251,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              _profile!.bio,
+              _profile!.professionalTitle,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -308,12 +312,16 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.chat),
                 label: const Text('Message Freelancer'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+                              style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
                 onPressed: () {
                   ConversationService.startConversation(
                     context: context,
@@ -361,7 +369,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
               child: _buildStatCard(
                 isDark,
                 _profile!.responseTime,
-                'Response Time' '(days)',
+                'Response Time',
                 Icons.access_time,
               ),
             ),
@@ -376,6 +384,7 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
             ),
           ],
         ),
+        const SizedBox(height: 24),
 
         // Bio Section
         _buildSectionTitle(isDark, 'About'),
@@ -418,7 +427,8 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                           ? Colors.blue.shade900.withOpacity(0.3)
                           : Colors.blue.shade50,
                       labelStyle: TextStyle(
-                        color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                        color:
+                            isDark ? Colors.blue.shade200 : Colors.blue.shade900,
                       ),
                     ))
                 .toList(),
@@ -440,7 +450,9 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                           ? Colors.green.shade900.withOpacity(0.3)
                           : Colors.green.shade50,
                       labelStyle: TextStyle(
-                        color: isDark ? Colors.green.shade200 : Colors.green.shade900,
+                        color: isDark
+                            ? Colors.green.shade200
+                            : Colors.green.shade900,
                       ),
                     ))
                 .toList(),
@@ -587,13 +599,15 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                           : Colors.blue.shade50,
                       labelStyle: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
+                        color:
+                            isDark ? Colors.blue.shade200 : Colors.blue.shade900,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Chip(
                       label: Text(service.status.displayName),
-                      backgroundColor: getStatusColor(service.status).withOpacity(0.2),
+                      backgroundColor:
+                          getStatusColor(service.status).withOpacity(0.2),
                       labelStyle: TextStyle(
                         fontSize: 12,
                         color: getStatusColor(service.status),
@@ -688,7 +702,8 @@ class _FreelancerProfileScreenState extends State<FreelancerProfileScreen>
                       project.description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                        color:
+                            isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       ),
                     ),
                   ],

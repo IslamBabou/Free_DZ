@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/service_model.dart';
+import 'package:free_dz/screens/client/services/services.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 
@@ -187,10 +188,15 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
     debugPrint('Redirecting to appropriate dashboard...');
   }
 
-  void _navigateToExplore() {
+    void _navigateToExplore() {
     debugPrint('Navigate to explore services...');
-    // TODO: Navigate to search/explore screen
-  }
+      Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AllServicesScreen(),
+                              ),
+                            );
+    }
 
   
 
@@ -607,10 +613,10 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                   CircleAvatar(
                     radius: 24,
                     backgroundColor: Colors.blue.shade100,
-                    child: service.freelancer?.avatarUrl != null
+                    child: service.avatarUrl != null
                         ? ClipOval(
                             child: Image.network(
-                              service.freelancer!.avatarUrl!,
+                              service.avatarUrl!,
                               width: 48,
                               height: 48,
                               fit: BoxFit.cover,
@@ -628,7 +634,7 @@ class _SavedFreelancersPageState extends State<SavedFreelancersPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          service.freelancer?.fullName ?? 'Unknown Freelancer',
+                          service.freelancerName ?? 'Unknown Freelancer',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,

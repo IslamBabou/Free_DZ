@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/screens/freelancers/jobs/jobs_details.dart';
 import 'package:free_dz/services/api_helper.dart';
-import 'package:free_dz/models/jobs.dart';
-
+import 'package:free_dz/models/free_home.dart'; // Make sure Job model is here
 
 // ==========================================
 // JOBS PAGE
@@ -22,11 +21,11 @@ class _JobsPageState extends State<JobsPage> {
   List<Job> _filteredJobs = [];
   final _searchController = TextEditingController();
 
- @override
-void initState() {
-  super.initState();
+  @override
+  void initState() {
+    super.initState();
     _loadJobs();
-}
+  }
 
   @override
   void dispose() {
@@ -34,60 +33,50 @@ void initState() {
     super.dispose();
   }
 
-Future<void> _loadJobs() async {
-  debugPrint('Loading jobs from API...');
+  Future<void> _loadJobs() async {
+    debugPrint('Loading jobs from API...');
 
-  setState(() {
-    _isLoading = true;
-    _hasError = false;
-  });
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
-  try {
-    // Call your API
-    final response = await ApiHelper.get('/projects/all');
+    try {
+      final response = await ApiHelper.get('/projects/all');
 
-    // Make sure to get the 'data' list
-    if (response != null && response['data'] is List) {
-      final List<dynamic> data = response['data'];
+      if (response != null && response['data'] is List) {
+        final List<dynamic> data = response['data'];
 
-      // Map each JSON object to a Job instance
-      final jobsList = data
-          .whereType<Map<String, dynamic>>()
-          .map<Job>((json) => Job.fromJson(json))
-          .toList();
+        final jobsList = data
+            .whereType<Map<String, dynamic>>()
+            .map<Job>((json) => Job.fromJson(json))
+            .toList();
 
-      setState(() {
-        _jobs = jobsList;
-        _filteredJobs = _jobs; // initially, filtered = all
-        _isLoading = false;
-      });
+        setState(() {
+          _jobs = jobsList;
+          _filteredJobs = _jobs;
+          _isLoading = false;
+        });
 
-      debugPrint('_jobs loaded: ${_jobs.length}');
-      for (var job in _jobs) {
-        debugPrint('Job title: ${job.title}, category: ${job.category}');
+        debugPrint('_jobs loaded: ${_jobs.length}');
+      } else {
+        debugPrint('API returned unexpected format: $response');
+        setState(() {
+          _jobs = [];
+          _filteredJobs = [];
+          _isLoading = false;
+        });
       }
-
-    } else {
-      debugPrint('API returned unexpected format: $response');
+    } catch (e) {
+      debugPrint('Error loading jobs: $e');
       setState(() {
         _jobs = [];
         _filteredJobs = [];
         _isLoading = false;
+        _hasError = true;
       });
     }
-  } catch (e) {
-    debugPrint('Error loading jobs: $e');
-    setState(() {
-      _jobs = [];
-      _filteredJobs = [];
-      _isLoading = false;
-      _hasError = true;
-    });
   }
-}
-
-
-  
 
   void _searchJobs(String query) {
     setState(() {
@@ -96,8 +85,8 @@ Future<void> _loadJobs() async {
       } else {
         _filteredJobs = _jobs.where((job) {
           return job.title.toLowerCase().contains(query.toLowerCase()) ||
-                 job.description.toLowerCase().contains(query.toLowerCase()) ||
-                 job.category.toLowerCase().contains(query.toLowerCase());
+              job.description.toLowerCase().contains(query.toLowerCase()) ||
+              job.categoryBadge.toLowerCase().contains(query.toLowerCase());
         }).toList();
       }
     });
@@ -161,7 +150,6 @@ Future<void> _loadJobs() async {
           ),
           IconButton(
             onPressed: () {
-              // TODO: Navigate to filters
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Filters coming soon'),
@@ -280,10 +268,10 @@ Future<void> _loadJobs() async {
 }
 
 // ==========================================
-// JOB CARD WIDGET
+// JOB CARD
 // ==========================================
 
-class JobCard extends StatelessWidget {
+class JobCard extends StatefulWidget {
   final Job job;
   final bool isDark;
 
@@ -294,7 +282,36 @@ class JobCard extends StatelessWidget {
   });
 
   @override
+  State<JobCard> createState() => _JobCardState();
+}
+
+class _JobCardState extends State<JobCard> {
+  bool _loading = false;
+
+  Future<void> _toggleFavorite() async {
+    setState(() => _loading = true);
+
+    try {
+      await ApiHelper.post(
+        '/projects/${widget.job.id}/favorite',
+        {},
+      );
+
+      setState(() {
+        widget.job.isFavorite = !widget.job.isFavorite;
+      });
+    } catch (e) {
+      debugPrint('Favorite toggle error: $e');
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final job = widget.job;
+    final isDark = widget.isDark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -342,20 +359,14 @@ class JobCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       job.clientName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     ),
                     const SizedBox(width: 16),
                     Icon(Icons.access_time, size: 16, color: Colors.grey.shade600),
                     const SizedBox(width: 6),
                     Text(
-                      _formatDate(job.postedDate),
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
+                      _formatDate(job.postedAt),
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -393,15 +404,13 @@ class JobCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Budget
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Budget',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -414,25 +423,32 @@ class JobCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+
+                // Favorite + Details
+                Row(
                   children: [
-                    Text(
-                      '${job.proposalsCount} proposals',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    _loading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : IconButton(
+                            onPressed: _toggleFavorite,
+                            icon: Icon(
+                              job.isFavorite ? Icons.favorite : Icons.favorite_border,
+                              color: Colors.red,
+                            ),
+                          ),
+                    const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
                         Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => JobDetailsPage(jobId: job.id ),
-                            ),
-                          );
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => JobDetailsPage(jobId: job.id),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -454,7 +470,7 @@ class JobCard extends StatelessWidget {
 
   Widget _buildCategoryChip() {
     Color categoryColor;
-    switch (job.category.toLowerCase()) {
+    switch (widget.job.categoryBadge.toLowerCase()) {
       case 'design':
         categoryColor = Colors.purple;
         break;
@@ -481,7 +497,7 @@ class JobCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        job.category,
+        widget.job.categoryBadge,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,

@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'freelancer_profile.dart';
 
 enum ServiceStatus { active, inactive, pending }
 
@@ -51,41 +52,33 @@ class Service {
   final String category;
   final double price;
   final ServiceStatus status;
-  final String? freelancerName;
-  final String? avatarUrl;
+  final FreelancerProfile? freelancer;
   final double rating;
-  final String email;
 
   bool isFavorited;
   final DateTime savedAt;
-  final DateTime updatedAt;
 
   Service({
     required this.id,
     required this.userId,
-    required this.email,
     required this.title,
     required this.description,
     required this.category,
     required this.price,
     required this.status,
-    required this.avatarUrl,
     required this.rating,
-    required this.freelancerName,
+    this.freelancer,
     required this.savedAt,
-    required this.updatedAt,
     this.isFavorited = false,
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
   final user = json['user'];
   final freelancerJson = user != null ? user['freelancer_profile'] : null;
-  final freelancerProfile = user != null ? user['freelancer_profile'] : null;
 
   return Service(
     id: json['id'].toString(),
     userId: json['user_id'].toString(),
-    email: user != null ? user['email'] ?? 'Null' : 'Null',
     title: json['title'] ?? '',
     description: json['description'] ?? '',
     category: json['category'] ?? '',
@@ -96,14 +89,12 @@ class Service {
         ? double.tryParse(freelancerJson['rating'].toString()) ?? 0.0
         : 0.0,
     status: ServiceStatusExtension.fromString(json['status'] ?? 'inactive'),
-    freelancerName: json['user']['full_name'] ?? 'Unkown freelancer',
-    avatarUrl: freelancerProfile != null ? freelancerProfile['avatar_url'] : null,
+    freelancer: freelancerJson != null
+        ? FreelancerProfile.fromJson(freelancerJson)
+        : null,
     isFavorited: json['is_favorited'] == true,
-    savedAt: json['created_at'] != null
-        ? DateTime.parse(json['created_at'])
-        : DateTime.now(),
-    updatedAt: json['updated_at'] != null
-        ? DateTime.parse(json['updated_at'])
+    savedAt: json['pivot']?['created_at'] != null
+        ? DateTime.parse(json['pivot']['created_at'])
         : DateTime.now(),
   );
 }
@@ -118,24 +109,20 @@ class Service {
     String? category,
     double? price,
     ServiceStatus? status,
-    String? freelancerName,
-    String? avatarUrl,
+    FreelancerProfile? freelancer,
     bool? isFavorited,
   }) {
     return Service(
       id: id ?? this.id,
       userId: userId ?? this.userId,
-      email: email,
       title: title ?? this.title,
       description: description ?? this.description,
       category: category ?? this.category,
       price: price ?? this.price,
       status: status ?? this.status,
-      freelancerName: freelancerName,
-      avatarUrl: avatarUrl,
+      freelancer: freelancer ?? this.freelancer,
       rating: rating,
       savedAt: savedAt,
-      updatedAt: updatedAt,
       isFavorited: isFavorited ?? this.isFavorited,
     );
   }

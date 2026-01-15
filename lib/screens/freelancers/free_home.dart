@@ -84,7 +84,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     });
 
     try {
-      final response = await ApiHelper.get('/projects/all');
+      final response = await ApiHelper.get('/freelancer/projects');
       final List list = response['data'];
       print('JSON received: ${response['data']}'); // <- Add this
 
@@ -171,6 +171,8 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
 
   PreferredSizeWidget _buildAppBar(bool isDark) {
     return AppBar(
+      automaticallyImplyLeading: false,
+
       backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       elevation: 0,
       title: const Text('Free_dz', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -231,6 +233,8 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
         children: [
           if (widget.showCompletionBanner)
             _buildCompletionBanner(),
+            const SizedBox(height: 24),
+
           _buildCompletedJobsCard(isDark),
           const SizedBox(height: 24),
           _buildAvailableJobs(isDark),
@@ -249,7 +253,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Available Jobs',
+              'My Jobs',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
@@ -341,11 +345,11 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
 // JOB CARD WITH FAVORITE
 // ==============================
 Widget _buildJobCardWithFavorite(Job job, bool isDark) {
-  return Card(
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    child: ListTile(
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(16),
       onTap: () {
-        // Navigate to job details page
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -353,26 +357,106 @@ Widget _buildJobCardWithFavorite(Job job, bool isDark) {
           ),
         );
       },
-      title: Text(job.title),
-      subtitle: Text(job.description, maxLines: 2),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('${job.budget} DA',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.green)),
-          const SizedBox(width: 12),
-          FavoriteButton(
-  job: job,
-  onChanged: () => setState(() {}),
-),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // TITLE + FAVORITE
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    job.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                FavoriteButton(
+                  job: job,
+                  onChanged: () => setState(() {}),
+                ),
+              ],
+            ),
 
-        ],
+            const SizedBox(height: 8),
+
+            // DESCRIPTION
+            Text(
+              job.description,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                color:
+                    isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                height: 1.4,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // FOOTER
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // BUDGET CHIP
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${job.budget} DA',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+
+                // VIEW DETAILS
+                Row(
+                      children: [
+              const Icon(Icons.schedule, size: 16, color: Colors.orange),
+              const SizedBox(width: 6),
+              Text(
+                '${job.remainingDays} days remaining',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: job.remainingDays == 0 ? Colors.red : Colors.orange,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     ),
   );
 }
-
 }
 
 // ==============================
