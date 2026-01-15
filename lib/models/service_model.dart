@@ -2,6 +2,7 @@
 // models/service_model.dart
 
 import 'package:flutter/material.dart';
+import 'package:free_dz/models/freelancer_profile.dart';
 
 
 enum ServiceStatus { active, inactive, pending }
@@ -59,6 +60,8 @@ class Service {
   bool isFavorited;
   final DateTime savedAt;
   final DateTime updatedAt;
+  final FreelancerProfile? freelancer;
+
 
   Service({
     required this.id,
@@ -74,7 +77,8 @@ class Service {
     required this.freelancerName,
     required this.savedAt,
     required this.updatedAt,
-    this.isFavorited = false,
+    this.isFavorited = false, 
+    this.freelancer,
   });
 
   factory Service.fromJson(Map<String, dynamic> json) {
@@ -104,9 +108,39 @@ class Service {
         : DateTime.now(),
     updatedAt: json['updated_at'] != null
         ? DateTime.parse(json['updated_at'])
-        : DateTime.now(),
+        : DateTime.now(),   
+    freelancer: null,
+     
+  );
+  }
+
+  factory Service.fromJson1(Map<String, dynamic> json) {
+  final user = json['user'];
+  final freelancerJson = user != null ? user['freelancer_profile'] : null;
+
+  return Service(
+    id: json['id'].toString(),
+    userId: json['user_id'].toString(),
+    title: json['title'] ?? '',
+    description: json['description'] ?? '',
+    category: json['category'] ?? '',
+    price: json['price'] != null
+        ? double.tryParse(json['price'].toString()) ?? 0.0
+        : 0.0,
+    rating: freelancerJson?['rating'] != null
+        ? double.tryParse(freelancerJson['rating'].toString()) ?? 0.0
+        : 0.0,
+    status: ServiceStatusExtension.fromString(json['status'] ?? 'inactive'),
+    freelancer: freelancerJson != null
+        ? FreelancerProfile.fromJson(freelancerJson)
+        : null,
+    isFavorited: json['is_favorited'] == true,
+    savedAt: json['pivot']?['created_at'] != null
+        ? DateTime.parse(json['pivot']['created_at'])
+        : DateTime.now(), email: '', avatarUrl: '', freelancerName: 'unkown', updatedAt: DateTime(000),
   );
 }
+
 
 
 
@@ -120,6 +154,8 @@ class Service {
     ServiceStatus? status,
     String? freelancerName,
     String? avatarUrl,
+    FreelancerProfile? freelancer,
+
     bool? isFavorited,
   }) {
     return Service(
@@ -137,6 +173,7 @@ class Service {
       savedAt: savedAt,
       updatedAt: updatedAt,
       isFavorited: isFavorited ?? this.isFavorited,
+      freelancer: freelancer ?? this.freelancer,
     );
   }
 }

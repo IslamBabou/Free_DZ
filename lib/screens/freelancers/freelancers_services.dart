@@ -41,7 +41,7 @@ class _FreelancerServicesPageState extends State<FreelancerServicesPage> {
       debugPrint('Services data: $data');
       
       final List<dynamic> servicesJson = data is List ? data : data['services'];
-      _services = servicesJson.map((json) => Service.fromJson(json)).toList();
+      _services = servicesJson.map((json) => Service.fromJson1(json)).toList();
       
       // Sort by date, most recent first
       
