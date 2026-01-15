@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:free_dz/models/service_model.dart';
+import 'package:free_dz/screens/freelancers/edit_service.dart';
 import 'package:free_dz/services/api_helper.dart';
 
 class ServiceDetailsPage extends StatefulWidget {
@@ -13,13 +14,58 @@ class ServiceDetailsPage extends StatefulWidget {
 
 class _ServiceDetailsPageState extends State<ServiceDetailsPage> {
   bool _isDeleting = false;
+  bool _isFavorite = false;
+  bool _isFavoriteLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _isFavorite = widget.service.isFavorited ;
   }
 
-  
+  Future<void> _toggleFavorite() async {
+    setState(() => _isFavoriteLoading = true);
+
+    try {
+      await ApiHelper.post('/services/${widget.service.id}/favorite', {});
+      setState(() {
+        _isFavorite = !_isFavorite;
+        _isFavoriteLoading = false;
+      });
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                _isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(_isFavorite ? 'Added to favorites' : 'Removed from favorites'),
+            ],
+          ),
+          backgroundColor: _isFavorite ? Colors.pink.shade400 : Colors.grey.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      setState(() => _isFavoriteLoading = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update favorite: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
 
   Future<void> _deleteService() async {
     final confirmed = await showDialog<bool>(
@@ -141,30 +187,50 @@ class _ServiceDetailsPageState extends State<ServiceDetailsPage> {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                
+                child: IconButton(
+                  icon: _isFavoriteLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          _isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: _isFavorite ? Colors.pink.shade300 : Colors.white,
+                        ),
+                  onPressed: _isFavoriteLoading ? null : _toggleFavorite,
+                  tooltip: _isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                ),
               ),
               // Edit Button
-              Container(
-                margin: const EdgeInsets.only(right: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Edit page coming soon'),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+             Container(
+  margin: const EdgeInsets.only(right: 4),
+  decoration: BoxDecoration(
+    color: Colors.white.withOpacity(0.2),
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: IconButton(
+    icon: const Icon(Icons.edit_outlined),
+    onPressed: () async {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EditServicePage(
+            service: service, // 👈 pass your Service object
+          ),
+        ),
+      );
+
+      if (result == true && mounted) {
+        Navigator.pop(context, true); // refresh parent page
+      }
+    },
+  ),
+),
+
               // Delete Button
               Container(
                 margin: const EdgeInsets.only(right: 8),
