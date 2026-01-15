@@ -66,6 +66,58 @@ class ApiHelper {
     }
   }
 
+  static Future<Map<String, dynamic>> putMultipart(
+    String endpoint,
+    Map<String, String> fields, {
+    String? filePath,
+    String? fileFieldName,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      final token = await AuthService.getToken();
+
+      final request = http.MultipartRequest('PUT', url);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      // Add fields
+      request.fields.addAll(fields);
+
+      // Add file if provided
+      if (filePath != null && fileFieldName != null) {
+        final file = await http.MultipartFile.fromPath(
+          fileFieldName,
+          filePath,
+        );
+        request.files.add(file);
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        throw Exception('Unauthorized. Please login again.');
+      } else if (response.statusCode == 422) {
+        final errorData = json.decode(response.body);
+        final errors = errorData['errors'] as Map<String, dynamic>?;
+        if (errors != null) {
+          final firstError = errors.values.first;
+          throw Exception(firstError is List ? firstError.first : firstError);
+        }
+        throw Exception(errorData['message'] ?? 'Validation error');
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to update data');
+      }
+    } catch (e) {
+      if (e is Exception) rethrow;
+      throw Exception('An error occurred: ${e.toString()}');
+    }
+  }
+
+
   // ===== Helper methods =====
 
   static Future<Map<String, String>> _getHeaders() async {

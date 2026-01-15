@@ -4,6 +4,7 @@ import 'package:free_dz/models/service_model.dart';
 import 'package:free_dz/screens/client/jobs/freelancers.dart';
 import 'package:free_dz/screens/client/jobs/my_jobs.dart';
 import 'package:free_dz/screens/client/services/services.dart';
+import 'package:free_dz/screens/freelancers/notifications_page.dart';
 import "client_profile.dart";
 import 'package:free_dz/services/api_helper.dart';
 import "../shared/chat_list.dart";
@@ -26,13 +27,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
   bool _hasError = false;
   List<FreelancerCard> _featuredFreelancers = [];
   List<Service> _featuredServices = [];
-  
-  
+  int _unreadNotifications = 0;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadNotificationCount();
   }
 
   Future<void> _loadData() async {
@@ -81,6 +82,30 @@ class _ClientHomePageState extends State<ClientHomePage> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadNotificationCount() async {
+    try {
+      final response = await ApiHelper.get('/notifications/unread-count');
+      if (mounted) {
+        setState(() {
+          _unreadNotifications = response['unread_count'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading notification count: $e');
+    }
+  }
+
+  void _navigateToNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const FreelancerNotificationsPage(),
+      ),
+    );
+    // Refresh notification count when returning
+    _loadNotificationCount();
   }
 
   @override
@@ -134,10 +159,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
     }
 
     return RefreshIndicator(
-      onRefresh: _loadData,
+      onRefresh: () async {
+        await _loadData();
+        await _loadNotificationCount();
+      },
       child: CustomScrollView(
         slivers: [
-          // Header with App Name
+          // Header with App Name and Notifications
           SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
@@ -162,28 +190,84 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.work_outline,
-                          color: Colors.white,
-                          size: 28,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.work_outline,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Flexible(
+                              child: Text(
+                                'Free DZ',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Free DZ',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
+                      // Notifications Bell
+                      Stack(
+                        children: [
+                          IconButton(
+                            onPressed: _navigateToNotifications,
+                            icon: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            tooltip: 'Notifications',
+                          ),
+                          if (_unreadNotifications > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.blue.shade700,
+                                    width: 2,
+                                  ),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _unreadNotifications > 99
+                                        ? '99+'
+                                        : _unreadNotifications.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -200,7 +284,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
             ),
           ),
 
-          
           // Featured Services Section
           if (_featuredServices.isNotEmpty)
             SliverToBoxAdapter(
@@ -288,12 +371,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  
-
-  
-
-  
-
   Widget _buildFeaturedServices(bool isDark) {
     if (_featuredServices.isEmpty) {
       return Center(
@@ -334,139 +411,140 @@ class _ClientHomePageState extends State<ClientHomePage> {
   }
 
   Widget _buildServiceCard(Service service, bool isDark) {
-  return Stack(
-    children: [
-      GestureDetector(
-        onTap: () async {
-          Navigator.pushNamed(
-            context,
-            '/service_details_client',
-            arguments: service,
-          );
-        },
-        child: Container(
-          width: 280,
-          margin: const EdgeInsets.only(right: 16),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: () async {
+            Navigator.pushNamed(
+              context,
+              '/service_details_client',
+              arguments: service,
+            );
+          },
+          child: Container(
+            width: 280,
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+              ),
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  service.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    service.title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  service.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
+                  const SizedBox(height: 8),
+                  Text(
+                    service.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        service.category,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue,
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          service.category,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue,
+                          ),
                         ),
                       ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${service.price} DA',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
+                      const Spacer(),
+                      Text(
+                        '${service.price} DA',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
 
-      // ❤️ Favorite Button
-      Positioned(
-        top: 10,
-        right: 10,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(30),
-          onTap: () => _toggleServiceFavorite(service),
-          child: Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              service.isFavorited
-                  ? Icons.favorite
-                  : Icons.favorite_border,
-              size: 18,
-              color: service.isFavorited
-                  ? Colors.redAccent
-                  : Colors.white,
+        // ❤️ Favorite Button
+        Positioned(
+          top: 10,
+          right: 10,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(30),
+            onTap: () => _toggleServiceFavorite(service),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                service.isFavorited
+                    ? Icons.favorite
+                    : Icons.favorite_border,
+                size: 18,
+                color: service.isFavorited
+                    ? Colors.redAccent
+                    : Colors.white,
+              ),
             ),
           ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
+
   Future<void> _toggleServiceFavorite(Service service) async {
-  final previous = service.isFavorited;
+    final previous = service.isFavorited;
 
-  // Optimistic update
-  setState(() {
-    service.isFavorited = !service.isFavorited;
-  });
-
-  try {
-    await ApiHelper.post(
-    '/services/${service.id}/favorite',
-    {},
-);
-  } catch (e) {
-    // rollback on error
+    // Optimistic update
     setState(() {
-      service.isFavorited = previous;
+      service.isFavorited = !service.isFavorited;
     });
 
-    debugPrint('Toggle favorite failed: $e');
+    try {
+      await ApiHelper.post(
+        '/services/${service.id}/favorite',
+        {},
+      );
+    } catch (e) {
+      // rollback on error
+      setState(() {
+        service.isFavorited = previous;
+      });
+
+      debugPrint('Toggle favorite failed: $e');
+    }
   }
-}
 
   Widget _buildFeaturedFreelancers(bool isDark) {
     if (_featuredFreelancers.isEmpty) {

@@ -147,7 +147,6 @@ class _FreelancerServicesPageState extends State<FreelancerServicesPage> {
   void _openServiceDetails(Service service) {
     debugPrint('Navigate to service details: ${service.id}');
     
-    // TODO: Navigate to service details/edit page
     Navigator.push(
        context,
        MaterialPageRoute(

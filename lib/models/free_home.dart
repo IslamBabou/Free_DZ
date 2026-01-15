@@ -11,6 +11,7 @@ class Job {
   final String location;
   final DateTime postedAt;
   final String categoryBadge;
+  bool isFavorite;
 
   Job({
     required this.id,
@@ -21,6 +22,7 @@ class Job {
     required this.location,
     required this.postedAt,
     required this.categoryBadge,
+    required this.isFavorite
   });
 
   factory Job.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,7 @@ class Job {
       location: json['location'] ?? 'Remote',
       postedAt: DateTime.parse(json['postedAt'] ?? DateTime.now().toIso8601String()),
       categoryBadge: json['categoryBadge'] ?? json['category'] ?? 'General',
+      isFavorite: json ['is_favorited'] ?? false 
     );
   }
 }

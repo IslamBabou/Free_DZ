@@ -28,45 +28,56 @@ class _FavoriteJobsPageState extends State<FavoriteJobsPage> {
     });
 
     try {
-      final response = await ApiHelper.get('/favorites');
-      debugPrint('DECODED RESPONSE: $response');
+        final response = await ApiHelper.get('/projects/favorites');
+        debugPrint('DECODED RESPONSE: $response');
 
-      if (response != null && response is List) {
+        if (response != null &&
+            response is Map<String, dynamic> &&
+            response['data'] is List) {
+
+          final List jobsData = response['data'];
+
+          setState(() {
+            favoriteJobs = jobsData
+                .map<Job>((json) => Job.fromJson(json))
+                .toList();
+            isLoading = false;
+          });
+
+        } else {
+          setState(() {
+            errorMessage = response?['message'] ?? 'Failed to load favorites';
+            isLoading = false;
+          });
+        }
+      } catch (e) {
         setState(() {
-          favoriteJobs = response
-              .map<Job>((json) => Job.fromJson(json))
-              .toList();
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          errorMessage = 'Failed to load favorites';
+          errorMessage = 'An error occurred: $e';
           isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        errorMessage = 'An error occurred: $e';
-        isLoading = false;
-      });
-    }
+
+    
   }
 
   Future<void> _removeFavorite(String jobId) async {
     try {
-      await ApiHelper.delete('/favorites/$jobId');
+      var response = await ApiHelper.post('/projects/$jobId/favorite', {});
 
       setState(() {
         favoriteJobs.removeWhere((job) => job.id.toString() == jobId);
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (response['is_favorited'] == false){
+        _loadFavoriteJobs();
+        ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Removed from favorites'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
-      );
+      )
+      ;}
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

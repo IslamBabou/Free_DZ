@@ -362,7 +362,11 @@ Widget _buildJobCardWithFavorite(Job job, bool isDark) {
               style: const TextStyle(
                   fontWeight: FontWeight.bold, color: Colors.green)),
           const SizedBox(width: 12),
-          FavoriteButton(jobId: job.id),
+          FavoriteButton(
+  job: job,
+  onChanged: () => setState(() {}),
+),
+
         ],
       ),
     ),
@@ -375,52 +379,36 @@ Widget _buildJobCardWithFavorite(Job job, bool isDark) {
 // FAVORITE BUTTON WIDGET
 // ==============================
 class FavoriteButton extends StatefulWidget {
-  final String jobId;
-  const FavoriteButton({super.key, required this.jobId});
+  final Job job;
+  final VoidCallback onChanged;
+
+  const FavoriteButton({
+    super.key,
+    required this.job,
+    required this.onChanged,
+  });
 
   @override
   State<FavoriteButton> createState() => _FavoriteButtonState();
 }
 
 class _FavoriteButtonState extends State<FavoriteButton> {
-  bool _isFavorite = false;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkFavorite();
-  }
-
-  Future<void> _checkFavorite() async {
-    try {
-      final response =
-          await ApiHelper.get('/favorites/${widget.jobId}/check');
-      setState(() {
-        _isFavorite = response['isFavorited'] ?? false;
-        _loading = false;
-      });
-    } catch (e) {
-      debugPrint('Favorite check error: $e');
-      setState(() => _loading = false);
-    }
-  }
+  bool _loading = false;
 
   Future<void> _toggleFavorite() async {
     setState(() => _loading = true);
 
     try {
-      if (_isFavorite) {
-        await ApiHelper.delete('/favorites/${widget.jobId}');
-      } else {
-        await ApiHelper.post('/favorites', {'project_id': widget.jobId});
-      }
-      setState(() {
-        _isFavorite = !_isFavorite;
-        _loading = false;
-      });
+      await ApiHelper.post(
+        '/projects/${widget.job.id}/favorite',
+        {},
+      );
+
+      widget.job.isFavorite = !widget.job.isFavorite;
+      widget.onChanged();
     } catch (e) {
       debugPrint('Favorite toggle error: $e');
+    } finally {
       setState(() => _loading = false);
     }
   }
@@ -429,14 +417,17 @@ class _FavoriteButtonState extends State<FavoriteButton> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const SizedBox(
-        width: 24,
-        height: 24,
+        width: 20,
+        height: 20,
         child: CircularProgressIndicator(strokeWidth: 2),
       );
     }
+
     return IconButton(
       icon: Icon(
-        _isFavorite ? Icons.favorite : Icons.favorite_border,
+        widget.job.isFavorite
+            ? Icons.favorite
+            : Icons.favorite_border,
         color: Colors.red,
       ),
       onPressed: _toggleFavorite,
