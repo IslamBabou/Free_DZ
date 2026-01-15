@@ -63,7 +63,7 @@ class _FreelancerMainScreenState extends State<FreelancerMainScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
               setState(() {
-                _currentIndex = 3; // Profile page index
+                _currentIndex = 1; // Profile page index
               });
             },
             child: const Text('Complete Now'),

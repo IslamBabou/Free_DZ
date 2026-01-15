@@ -1,60 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:free_dz/screens/freelancers/portfolio.dart';
 import 'package:free_dz/services/api_helper.dart';
 import 'package:free_dz/services/auth_service.dart';
 import 'package:free_dz/services/theme_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:free_dz/widgets/reusable_widgets.dart';
-
-
-// ==========================================
-// FREELANCER PROFILE MODEL
-// ==========================================
-
-class FreelancerProfileData {
-  final String id;
-  final String fullName;
-  final String title;
-  final String? avatarUrl;
-  final double rating;
-  final int reviewsCount;
-  final int completedJobs;
-  final int inProgressJobs;
-  final String earnings;
-
-  FreelancerProfileData({
-    required this.id,
-    required this.fullName,
-    required this.title,
-    this.avatarUrl,
-    required this.rating,
-    required this.reviewsCount,
-    required this.completedJobs,
-    required this.inProgressJobs,
-    required this.earnings,
-  });
-  
-
-  factory FreelancerProfileData.fromJson(Map<String, dynamic> json) {
-    return FreelancerProfileData(
-      id: json['id'].toString(),
-      fullName: json['full_name'] ?? 'Unknown User',
-      title: json['professional_title'] ?? 'Freelancer',
-      avatarUrl: json['avatar_url'],
-      rating: (json['rating'] ?? 0).toDouble(),
-      reviewsCount: json['total_reviews'] ?? 0,
-      completedJobs: json['completed_jobs'] ?? 0,
-      inProgressJobs: json['inProgressJobs'] ?? 0,
-      earnings: json['earnings'] ?? '0 DA',
-    );
-  }
-}
-
-// ==========================================
-// FREELANCER PROFILE PAGE
-// ==========================================
+import 'package:free_dz/models/profile.dart';
+import 'package:provider/provider.dart';
 
 class FreelancerProfilePage extends StatefulWidget {
-  final String? freelancerId; // If null, fetch current user's profile
+  final String? freelancerId;
 
   const FreelancerProfilePage({
     super.key,
@@ -68,7 +22,7 @@ class FreelancerProfilePage extends StatefulWidget {
 class _FreelancerProfilePageState extends State<FreelancerProfilePage> {
   bool _isLoading = true;
   bool _hasError = false;
-  FreelancerProfileData? _profileData;
+  FreelancerPortfolio? _profile;
 
   @override
   void initState() {
@@ -76,85 +30,192 @@ class _FreelancerProfilePageState extends State<FreelancerProfilePage> {
     _loadProfile();
   }
 
-Future<void> _loadProfile() async {
-  setState(() {
-    _isLoading = true;
-    _hasError = false;
-  });
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
-  try {
-    final endpoint = '/freelancer/profile';
+    try {
+      final response = await ApiHelper.get('/freelancer/profile');
+      final data = response['user']['freelancer_profile'];
 
-    final data = await ApiHelper.get(endpoint); // The response data
+      if (data == null) {
+        throw Exception('Profile data missing');
+      }
 
-final profileData = data['user']['freelancer_profile'];
-
-    if (profileData != null) {
       setState(() {
-        _profileData = FreelancerProfileData.fromJson(profileData);
-
+        _profile = FreelancerPortfolio.fromJson(data);
         _isLoading = false;
       });
-    } else {
-      throw Exception('Profile data is missing');
+    } catch (e) {
+      debugPrint(e.toString());
+      setState(() {
+        _hasError = true;
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _openPortfolio() {
+    if (_profile == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FreelancerProfileEditPage(portfolio: _profile!),
+      ),
+    );
+  }
+
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await AuthService.logout();
+              if (mounted) {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade50,
+      body: SafeArea(child: _buildBody(isDark)),
+    );
+  }
+
+  Widget _buildBody(bool isDark) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-  } catch (e) {
-    debugPrint('Error loading profile: $e');
-  }
-}
+    if (_hasError) {
+      return _buildErrorState();
+    }
 
+    if (_profile == null) {
+      return const Center(child: Text('No profile data'));
+    }
 
-  void _navigateToEditProfile() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Edit Profile coming soon'),
-        behavior: SnackBarBehavior.floating,
+    return RefreshIndicator(
+      onRefresh: _loadProfile,
+      child: ListView(
+        children: [
+          _buildHeader(isDark),
+          const SizedBox(height: 16),
+          _buildStats(isDark),
+          const SizedBox(height: 24),
+          _buildProfileActions(isDark),
+          const SizedBox(height: 16),
+          _buildAccountSection(isDark),
+          const SizedBox(height: 80),
+        ],
       ),
     );
   }
 
-  void _navigateToSkills() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Skills management coming soon'),
-        behavior: SnackBarBehavior.floating,
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.orange.shade400),
+          const SizedBox(height: 16),
+          const Text(
+            'Failed to load profile',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _loadProfile,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+          ),
+        ],
       ),
     );
   }
 
-  void _navigateToPortfolio() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Portfolio coming soon'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+  // ================= HEADER =================
 
-  void _navigateToCompletedJobs() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Job history coming soon'),
-        behavior: SnackBarBehavior.floating,
+  Widget _buildHeader(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(12),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-    );
-  }
-
-  void _navigateToEarnings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Earnings page coming soon'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _navigateToHelp() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Help & Support coming soon'),
-        behavior: SnackBarBehavior.floating,
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.blue.shade100,
+            backgroundImage:
+                _profile!.avatarUrl != null ? NetworkImage(_profile!.avatarUrl!) : null,
+            child: _profile!.avatarUrl == null
+                ? Icon(Icons.person, size: 50, color: Colors.blue.shade700)
+                : null,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _profile!.fullName,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _profile!.professionalTitle,
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _profile!.location,
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.star, color: Colors.amber, size: 20),
+              const SizedBox(width: 4),
+              Text(
+                '${_profile!.rating.toStringAsFixed(1)} '
+                '(${_profile!.totalReviews} reviews)',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -186,226 +247,9 @@ final profileData = data['user']['freelancer_profile'];
     );
   }
 
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await AuthService.logout();
-              if (mounted) {
-                
-                Navigator.pushReplacementNamed(context, '/login');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Logged out successfully'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-  }
+  // ================= STATS =================
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey.shade50,
-      body: SafeArea(
-        child: _buildBody(isDark),
-      ),
-    );
-  }
-
-  Widget _buildBody(bool isDark) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_hasError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.orange.shade400),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to load profile',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _loadProfile,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_profileData == null) {
-      return const Center(child: Text('No profile data available'));
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadProfile,
-      child: ListView(
-        children: [
-          _buildProfileHeader(isDark),
-          const SizedBox(height: 16),
-          _buildStatsSection(isDark),
-          const SizedBox(height: 24),
-          _buildProfileActionsSection(isDark),
-          const SizedBox(height: 16),
-          _buildAccountSection(isDark),
-          const SizedBox(height: 100), // Space for bottom nav
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Profile Photo
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.blue.shade100,
-                child: _profileData!.avatarUrl != null
-                    ? ClipOval(
-                        child: Image.network(
-                          _profileData!.avatarUrl!,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Colors.blue.shade700,
-                            );
-                          },
-                        ),
-                      )
-                    : Icon(
-                        Icons.person,
-                        size: 50,
-                        color: Colors.blue.shade700,
-                      ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Photo upload coming soon'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                        width: 2,
-                      ),
-                    ),
-                    child: const Icon(Icons.camera_alt, size: 16, color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Name
-          Text(
-            _profileData!.fullName,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-
-          // Profession
-          Text(
-            _profileData!.title,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade600,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Rating
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ...List.generate(5, (index) {
-                final fullStars = _profileData!.rating.floor();
-                final hasHalfStar = (_profileData!.rating - fullStars) >= 0.5;
-
-                if (index < fullStars) {
-                  return Icon(Icons.star, size: 20, color: Colors.amber.shade600);
-                } else if (index == fullStars && hasHalfStar) {
-                  return Icon(Icons.star_half, size: 20, color: Colors.amber.shade600);
-                } else {
-                  return Icon(Icons.star_border, size: 20, color: Colors.amber.shade600);
-                }
-              }),
-              const SizedBox(width: 8),
-              Text(
-                '${_profileData!.rating.toStringAsFixed(1)} (${_profileData!.reviewsCount} reviews)',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsSection(bool isDark) {
+  Widget _buildStats(bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -415,7 +259,7 @@ final profileData = data['user']['freelancer_profile'];
               isDark: isDark,
               icon: Icons.work_outline,
               label: 'Completed',
-              value: _profileData!.completedJobs.toString(),
+              value: _profile!.completedJobs.toString(),
               color: Colors.blue,
             ),
           ),
@@ -423,19 +267,9 @@ final profileData = data['user']['freelancer_profile'];
           Expanded(
             child: StatCard(
               isDark: isDark,
-              icon: Icons.schedule,
-              label: 'In Progress',
-              value: _profileData!.inProgressJobs.toString(),
-              color: Colors.orange,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: StatCard(
-              isDark: isDark,
               icon: Icons.attach_money,
-              label: 'Earnings',
-              value: _profileData!.earnings,
+              label: 'Hourly Rate',
+              value: '${_profile!.hourlyRate} DA',
               color: Colors.green,
             ),
           ),
@@ -444,128 +278,41 @@ final profileData = data['user']['freelancer_profile'];
     );
   }
 
-  Widget _buildProfileActionsSection(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Profile',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-          ),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.edit_outlined,
-            title: 'Edit Profile',
-            subtitle: 'Update your personal information',
-            onTap: _navigateToEditProfile,
-          ),
-          AppDivider(isDark: isDark),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.star_outline,
-            title: 'Skills',
-            subtitle: 'Manage your skills and expertise',
-            onTap: _navigateToSkills,
-          ),
-          AppDivider(isDark: isDark),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.work_outline,
-            title: 'Portfolio',
-            subtitle: 'Showcase your best work',
-            onTap: _navigateToPortfolio,
-          ),
-          AppDivider(isDark: isDark),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.done_all_outlined,
-            title: 'Completed Jobs',
-            subtitle: 'View your work history',
-            onTap: _navigateToCompletedJobs,
-          ),
-          AppDivider(isDark: isDark),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.account_balance_wallet_outlined,
-            title: 'Earnings',
-            subtitle: 'Track your income and payments',
-            onTap: _navigateToEarnings,
-          ),
-        ],
-      ),
+  // ================= PROFILE ACTIONS =================
+
+  Widget _buildProfileActions(bool isDark) {
+    return _buildCard(
+      isDark,
+      title: 'Profile',
+      children: [
+        ActionTile(
+          isDark: isDark,
+          icon: Icons.work_outline,
+          title: 'Portfolio',
+          subtitle: 'View your work and experience',
+          onTap: _openPortfolio,
+        ),
+      ],
     );
   }
 
-  Widget _buildAccountSection(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Account',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-          ),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.dark_mode_outlined,
-            title: 'Mode',
-            subtitle: Provider.of<ThemeProvider>(context)
-            .themeMode
-            .name
-            .replaceFirst(
-              Provider.of<ThemeProvider>(context).themeMode.name[0],
-              Provider.of<ThemeProvider>(context).themeMode.name[0].toUpperCase(),
-            ),
-            onTap:() => switchMode(context),
-          ),
+  // ================= ACCOUNT =================
 
-          AppDivider(isDark: isDark),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.help_outline,
-            title: 'Help & Support',
-            subtitle: 'Get help and contact support',
-            onTap: _navigateToHelp,
-          ),
+  Widget _buildAccountSection(bool isDark) {
+    return _buildCard(
+      isDark,
+      title: 'Account',
+      children: [
+        ActionTile(
+          isDark: isDark,
+          icon: Icons.dark_mode_outlined,
+          title: 'Mode',
+          subtitle: Provider.of<ThemeProvider>(context)
+              .themeMode
+              .name
+              .replaceFirstMapped(RegExp(r'^.'), (m) => m[0]!.toUpperCase()),
+          onTap: () => switchMode(context),
+        ),
           AppDivider(isDark: isDark),
           ActionTile(
             isDark: isDark,
@@ -574,18 +321,56 @@ final profileData = data['user']['freelancer_profile'];
             subtitle: 'App version and information',
             onTap: _showAbout,
           ),
-          AppDivider(isDark: isDark),
-          ActionTile(
-            isDark: isDark,
-            icon: Icons.logout,
-            title: 'Logout',
-            subtitle: 'Sign out of your account',
-            iconColor: Colors.red,
-            onTap: _showLogoutDialog,
+        AppDivider(isDark: isDark),
+        ActionTile(
+          isDark: isDark,
+          icon: Icons.logout,
+          title: 'Logout',
+          subtitle: 'Sign out of your account',
+          iconColor: Colors.red,
+          onTap: _logout,
+        ),
+      ],
+    );
+  }
+
+  // ================= SHARED CARD =================
+
+  Widget _buildCard(
+    bool isDark, {
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(12),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+          ...children,
         ],
       ),
     );
   }
 }
-

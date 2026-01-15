@@ -22,59 +22,74 @@ enum NotificationType {
 }
 
 class NotificationModel {
-  final String id;
+  final int id;
+  final int userId;
   final String title;
   final String message;
-  final NotificationType type;
+  final String type;
   final bool isRead;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   NotificationModel({
     required this.id,
+    required this.userId,
     required this.title,
     required this.message,
     required this.type,
     required this.isRead,
     required this.createdAt,
+    required this.updatedAt,
   });
 
+  /// FROM JSON
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      message: json['message'] as String,
-      type: NotificationType.fromString(json['type'] as String),
-      isRead: json['isRead'] as bool? ?? false,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      id: json['id'],
+      userId: json['user_id'],
+      title: json['title'],
+      message: json['message'],
+      type: json['type'],
+      isRead: json['is_read'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
+  /// TO JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'user_id': userId,
       'title': title,
       'message': message,
-      'type': type.name,
-      'isRead': isRead,
-      'createdAt': createdAt.toIso8601String(),
+      'type': type,
+      'is_read': isRead,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 
+  /// COPY WITH
   NotificationModel copyWith({
-    String? id,
+    int? id,
+    int? userId,
     String? title,
     String? message,
-    NotificationType? type,
+    String? type,
     bool? isRead,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return NotificationModel(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       title: title ?? this.title,
       message: message ?? this.message,
       type: type ?? this.type,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
