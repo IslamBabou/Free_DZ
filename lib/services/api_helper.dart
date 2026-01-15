@@ -7,7 +7,7 @@ class ApiHelper {
   static const String baseUrl = 
 /*   'http://127.0.0.1:8000/api';
  */     // for lotfi :
-        'http://192.168.100.9:8000/api';  
+        'http://192.168.210.40:8000/api';  
  
 
   // Generic GET
